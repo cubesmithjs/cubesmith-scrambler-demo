@@ -1,6 +1,12 @@
 'use client';
 
-import { generateScramble, UnimplementedEventError, type WcaEventId } from '@cubesmith/scrambler';
+import {
+  generateScramble,
+  InvalidScrambleCountError,
+  MAX_SCRAMBLE_COUNT,
+  UnimplementedEventError,
+  type WcaEventId,
+} from '@cubesmith/scrambler';
 import { useState } from 'react';
 
 import type { Run, RunError, RunMode, ScrambleResponse } from '@/lib/api';
@@ -34,6 +40,9 @@ function toRunError(error: unknown): RunError {
   if (error instanceof UnimplementedEventError) {
     return { kind: 'unimplemented', message: error.message };
   }
+  if (error instanceof InvalidScrambleCountError) {
+    return { kind: 'invalid-count', message: error.message };
+  }
   return { kind: 'other', message: error instanceof Error ? error.message : String(error) };
 }
 
@@ -43,10 +52,29 @@ interface Pending {
   readonly event: WcaEventId;
 }
 
+/**
+ * The only event that takes a `count`. Deliberately derived from the package's
+ * own behaviour rather than hardcoded as a list: if a second multi-scramble
+ * event is ever added, this is the one line to revisit, and it is named so the
+ * next reader can find it.
+ */
+const MULTI_SCRAMBLE_EVENT: WcaEventId = '333mbf';
+
+/**
+ * Where the deliberate `InvalidScrambleCountError` demonstration sends its
+ * count. Any event that is not multi-scramble would do; 3x3x3 is the one every
+ * visitor recognises.
+ */
+const COUNT_REFUSING_EVENT: WcaEventId = '333';
+
+/** A low default: each cube is a full random-state solve, so the cost is real and visible. */
+const DEFAULT_COUNT = 3;
+
 export function Playground() {
   const [event, setEvent] = useState<WcaEventId>('333');
   const [mode, setMode] = useState<RunMode>(STATIC_EXPORT ? 'client' : 'server');
   const [seed, setSeed] = useState('');
+  const [count, setCount] = useState(String(DEFAULT_COUNT));
   const [run, setRun] = useState<Run | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
 
@@ -60,14 +88,34 @@ export function Playground() {
   const busy = pending !== null;
   const clientColdAhead = mode === 'client' && selected.table !== null && !warmTables.has(selected.table);
 
-  async function generate() {
-    const table = selected.table;
+  const multi = event === MULTI_SCRAMBLE_EVENT;
+  /** `null` while the field is empty or not a whole number — the button stays disabled rather than guessing. */
+  const countValue = /^\d+$/.test(count.trim()) ? Number(count.trim()) : null;
+  const countUsable = countValue !== null && countValue >= 1 && countValue <= MAX_SCRAMBLE_COUNT;
+
+  /**
+   * `overrides` exists for the deliberate-error button, which needs to send a
+   * count to an event that refuses one — a combination the controls above can
+   * never produce, because the count field only appears for `333mbf`.
+   */
+  async function generate(overrides?: { readonly event: WcaEventId; readonly count: number }) {
+    const targetEvent = overrides?.event ?? event;
+    const table = getEvent(targetEvent).table;
     const seedValue = seed.trim() ? seed.trim() : null;
-    const options = seedValue ? { seed: seedValue } : {};
+
+    // Only send a count when the event actually takes one. Sending it always
+    // would turn every other event into an InvalidScrambleCountError.
+    const countToSend =
+      overrides?.count ?? (multi && countUsable ? (countValue as number) : null);
+
+    const options = {
+      ...(seedValue ? { seed: seedValue } : {}),
+      ...(countToSend !== null ? { count: countToSend } : {}),
+    };
 
     if (mode === 'client') {
       const cold = table !== null && !warmTables.has(table);
-      setPending({ mode, cold, event });
+      setPending({ mode, cold, event: targetEvent });
 
       // Hand the browser a frame to paint the pending state before we give it
       // a workload that blocks the main thread. `generateScramble` is async,
@@ -78,14 +126,25 @@ export function Playground() {
 
       const startedAt = performance.now();
       try {
-        const result = await generateScramble(event, options);
+        const result = await generateScramble(targetEvent, options);
         const elapsedMs = performance.now() - startedAt;
         if (table) setWarmTables((previous) => new Set(previous).add(table));
-        setRun({ mode, event, elapsedMs, roundTripMs: null, cold, seed: seedValue, result, error: null });
+        setRun({
+          mode,
+          event: targetEvent,
+          count: countToSend,
+          elapsedMs,
+          roundTripMs: null,
+          cold,
+          seed: seedValue,
+          result,
+          error: null,
+        });
       } catch (error) {
         setRun({
           mode,
-          event,
+          event: targetEvent,
+          count: countToSend,
           elapsedMs: performance.now() - startedAt,
           roundTripMs: null,
           cold,
@@ -99,24 +158,26 @@ export function Playground() {
       return;
     }
 
-    setPending({ mode, cold: false, event });
-    const params = new URLSearchParams({ event });
+    setPending({ mode, cold: false, event: targetEvent });
+    const params = new URLSearchParams({ event: targetEvent });
     if (seedValue) params.set('seed', seedValue);
+    if (countToSend !== null) params.set('count', String(countToSend));
 
     const startedAt = performance.now();
     try {
       const response = await fetch(`/api/scramble?${params.toString()}`);
       const roundTripMs = performance.now() - startedAt;
 
-      // Read the body whatever the status. An unimplemented event comes back
-      // as a 501 carrying a structured payload, not as a network failure.
+      // Read the body whatever the status. A rejected call comes back as a 501
+      // or a 400 carrying a structured payload, not as a network failure.
       const payload = (await response.json()) as ScrambleResponse;
 
       setRun(
         payload.ok
           ? {
               mode,
-              event,
+              event: targetEvent,
+              count: countToSend,
               elapsedMs: payload.elapsedMs,
               roundTripMs,
               cold: payload.cold,
@@ -126,14 +187,18 @@ export function Playground() {
             }
           : {
               mode,
-              event,
+              event: targetEvent,
+              count: countToSend,
               elapsedMs: 0,
               roundTripMs,
               cold: false,
               seed: seedValue,
               result: null,
               error: {
-                kind: payload.kind === 'unimplemented' ? 'unimplemented' : 'other',
+                kind:
+                  payload.kind === 'unimplemented' || payload.kind === 'invalid-count'
+                    ? payload.kind
+                    : 'other',
                 message: payload.message,
               },
             },
@@ -141,7 +206,8 @@ export function Playground() {
     } catch (error) {
       setRun({
         mode,
-        event,
+        event: targetEvent,
+        count: countToSend,
         elapsedMs: 0,
         roundTripMs: performance.now() - startedAt,
         cold: false,
@@ -214,15 +280,81 @@ export function Playground() {
           />
         </div>
 
+        {/*
+          Scoped to the one event that takes a count. A field greyed out for the
+          other sixteen would be noise, and a field that silently did nothing
+          would be worse.
+        */}
+        {multi ? (
+          <div className="sm:w-40">
+            <label htmlFor="count" className="block text-sm font-medium text-neutral-400">
+              Cubes <span className="text-neutral-600">(1&ndash;{MAX_SCRAMBLE_COUNT})</span>
+            </label>
+            <input
+              id="count"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_SCRAMBLE_COUNT}
+              value={count}
+              onChange={(changeEvent) => setCount(changeEvent.target.value)}
+              disabled={busy}
+              aria-invalid={!countUsable}
+              aria-describedby="count-help"
+              className="mt-1.5 w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none disabled:opacity-40"
+            />
+          </div>
+        ) : null}
+
         <button
           type="button"
-          onClick={generate}
-          disabled={busy}
+          onClick={() => generate()}
+          disabled={busy || (multi && !countUsable)}
           className="rounded-lg bg-emerald-500 px-6 py-2.5 font-semibold text-neutral-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? 'Generating…' : 'Generate'}
         </button>
       </div>
+
+      {multi ? (
+        <div
+          id="count-help"
+          className="-mt-2 flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-sm leading-relaxed text-neutral-400"
+        >
+          <p>
+            Multi-Blind is one attempt over many cubes, so this is the only event that takes a{' '}
+            <code className="font-mono text-neutral-200">count</code>. Each cube is a full
+            random-state solve of roughly 100&nbsp;ms once the 3x3x3 table is warm, so{' '}
+            {MAX_SCRAMBLE_COUNT} of them is about ten seconds — and in browser mode that is ten
+            seconds of blocked main thread. The cost is shown rather than hidden; that is the point
+            of this page.
+          </p>
+          <p>
+            The draws are independent and deliberately not de-duplicated, so a repeat is legitimate
+            rather than a bug. <code className="font-mono text-neutral-200">result.moves</code> is
+            still <code className="font-mono text-neutral-200">result.scrambles[0]</code>, which is
+            how code written before Multi-Blind existed keeps working.
+          </p>
+          <p>
+            Passing <code className="font-mono text-neutral-200">count</code> to any other event is
+            an error rather than a silently ignored option — otherwise you could believe you had
+            asked for {countUsable ? countValue : DEFAULT_COUNT} scrambles and received one.{' '}
+            <button
+              type="button"
+              onClick={() =>
+                generate({
+                  event: COUNT_REFUSING_EVENT,
+                  count: countUsable ? (countValue as number) : DEFAULT_COUNT,
+                })
+              }
+              disabled={busy}
+              className="font-medium text-emerald-400 underline underline-offset-2 transition hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Send this count to 3x3x3 and see.
+            </button>
+          </p>
+        </div>
+      ) : null}
 
       <p className="-mt-2 text-sm text-neutral-500">
         Give it a seed and generation is reproducible: the same seed and the same event produce

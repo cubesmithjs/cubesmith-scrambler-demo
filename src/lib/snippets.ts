@@ -27,9 +27,16 @@ const EXAMPLES: readonly Omit<Snippet, 'source'>[] = [
       'The type union covers every WCA event; the registry decides which ones actually generate.',
   },
   {
+    title: 'Generate a Multi-Blind attempt',
+    file: 'multi-blind.ts',
+    description:
+      'The one event that takes a count, why result.moves still works unchanged, and why passing count anywhere else is an error rather than a no-op.',
+  },
+  {
     title: 'Catch UnimplementedEventError',
     file: 'catching-error.ts',
-    description: 'The typed failure you get for an event with no scrambler, and how to handle it.',
+    description:
+      'The typed failure you get for an event with no scrambler, and how to handle it. No event triggers it as of 0.10.0 — worth keeping anyway, since the union covers events the registry may not.',
   },
 ];
 

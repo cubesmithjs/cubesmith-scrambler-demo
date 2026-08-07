@@ -15,7 +15,7 @@ export default async function CodePage() {
       <section>
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-50">Code</h1>
         <p className="mt-3 leading-relaxed text-neutral-400">
-          The four things you actually need. Each block below is read verbatim from a real file in
+          The five things you actually need. Each block below is read verbatim from a real file in
           this repo at build time, and those files are covered by{' '}
           <code className="font-mono text-neutral-200">npm run build</code>&rsquo;s type check — so
           nothing here can drift out of date without breaking the build.

@@ -1,4 +1,8 @@
-import { generateScramble, UnimplementedEventError } from '@cubesmith/scrambler';
+import {
+  generateScramble,
+  InvalidScrambleCountError,
+  UnimplementedEventError,
+} from '@cubesmith/scrambler';
 
 import type { ScrambleResponse } from '@/lib/api';
 import { getEvent, isWcaEventId } from '@/lib/events';
@@ -28,6 +32,7 @@ export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const event = params.get('event');
   const rawSeed = params.get('seed')?.trim();
+  const rawCount = params.get('count')?.trim();
 
   if (!isWcaEventId(event)) {
     return Response.json(
@@ -36,8 +41,23 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
+  // Only the *syntax* is checked here — "is this a number at all". Whether the
+  // number is usable is the package's call, not ours: `333mbf` accepts a count,
+  // every other event rejects one, and the bound is `MAX_SCRAMBLE_COUNT`. Range-
+  // checking here as well would mean two copies of a rule the package already
+  // owns, and the copy here would be the one that silently goes stale.
+  if (rawCount !== undefined && !/^-?\d+$/.test(rawCount)) {
+    return Response.json(
+      { ok: false, kind: 'bad-request', message: `"${rawCount}" is not a whole number.` } satisfies ScrambleResponse,
+      { status: 400 },
+    );
+  }
+
   // An empty seed field means "no seed", which is not the same as seeding with "".
-  const options = rawSeed ? { seed: rawSeed } : {};
+  const options = {
+    ...(rawSeed ? { seed: rawSeed } : {}),
+    ...(rawCount !== undefined ? { count: Number(rawCount) } : {}),
+  };
 
   const table = getEvent(event).table;
   // Events with no pruning table have nothing to warm up, so they are never cold.
@@ -52,14 +72,28 @@ export async function GET(request: Request): Promise<Response> {
 
     return Response.json({ ok: true, result, elapsedMs, cold } satisfies ScrambleResponse);
   } catch (error) {
-    // The one failure that is a normal outcome rather than a bug. 501 Not
-    // Implemented is exactly what it means, and the body still explains it.
+    // Two failures that are normal outcomes rather than bugs.
+
+    // 501 Not Implemented is exactly what it means, and the body still explains
+    // it. Unreachable from the picker since 0.10.0 completed the event set —
+    // kept because the route is a public URL anyone can call, and because a
+    // future WCA event would make it reachable again the day it is added.
     if (error instanceof UnimplementedEventError) {
       return Response.json(
         { ok: false, kind: 'unimplemented', message: error.message } satisfies ScrambleResponse,
         { status: 501 },
       );
     }
+
+    // A caller mistake, so 400 rather than 501: the event exists and works, the
+    // count asked for is the part that cannot be honoured.
+    if (error instanceof InvalidScrambleCountError) {
+      return Response.json(
+        { ok: false, kind: 'invalid-count', message: error.message } satisfies ScrambleResponse,
+        { status: 400 },
+      );
+    }
+
     throw error;
   }
 }

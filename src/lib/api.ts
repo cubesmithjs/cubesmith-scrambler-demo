@@ -3,11 +3,11 @@ import type { ScrambleResult, WcaEventId } from '@cubesmith/scrambler';
 /**
  * The shape `/api/scramble` returns.
  *
- * An unimplemented event is a normal, expected outcome rather than a crash, so
- * it comes back as a structured failure the UI can render. An
- * `UnimplementedEventError` cannot survive a trip over the network, so the
- * route flattens it into `kind: 'unimplemented'` and the page turns it back
- * into the same UI state the client-side `catch` produces.
+ * A rejected call is a normal, expected outcome rather than a crash, so it
+ * comes back as a structured failure the UI can render. Neither
+ * `UnimplementedEventError` nor `InvalidScrambleCountError` survives a trip
+ * over the network, so the route flattens each into a `kind` and the page
+ * turns it back into the same UI state the client-side `catch` produces.
  */
 export type ScrambleResponse =
   | {
@@ -20,7 +20,7 @@ export type ScrambleResponse =
     }
   | {
       readonly ok: false;
-      readonly kind: 'unimplemented' | 'bad-request';
+      readonly kind: 'unimplemented' | 'invalid-count' | 'bad-request';
       readonly message: string;
     };
 
@@ -28,7 +28,7 @@ export type ScrambleResponse =
 export type RunMode = 'server' | 'client';
 
 export interface RunError {
-  readonly kind: 'unimplemented' | 'other';
+  readonly kind: 'unimplemented' | 'invalid-count' | 'other';
   readonly message: string;
 }
 
@@ -36,6 +36,15 @@ export interface RunError {
 export interface Run {
   readonly mode: RunMode;
   readonly event: WcaEventId;
+  /**
+   * The `count` this run asked for, or `null` when it passed none.
+   *
+   * Kept separately from the result because it is also what a *failed* run was
+   * asking for — the deliberate `InvalidScrambleCountError` demonstration
+   * sends a count to an event that refuses it, and the error display wants to
+   * say which number was rejected.
+   */
+  readonly count: number | null;
   /** Time inside `generateScramble` itself, wherever it ran. */
   readonly elapsedMs: number;
   /** Full `fetch` time including the network. Server mode only. */
