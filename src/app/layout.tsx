@@ -43,11 +43,30 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
               <Link href="/code" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Code
               </Link>
-              <a href={NPM_URL} className="hover:text-neutral-100">
+              {/*
+                The two links that leave the demo open in a new tab, so a reader
+                following them does not lose a warm pruning table and a scramble
+                they were looking at. `rel` is not optional with `target="_blank"`:
+                without `noopener` the opened page gets a handle on this one
+                through `window.opener`.
+              */}
+              <a
+                href={NPM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-neutral-100"
+              >
                 npm
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
-              <a href={PACKAGE_REPO_URL} className="hover:text-neutral-100">
+              <a
+                href={PACKAGE_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-neutral-100"
+              >
                 GitHub
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </nav>
           </header>
