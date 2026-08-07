@@ -15,14 +15,41 @@ export interface WcaEvent {
   readonly id: WcaEventId;
   readonly name: string;
   readonly table: TableGroup;
-  /** Cost of the first call while the table is still cold. */
+  /**
+   * Cost of the first call while the table is still cold — as a *table row*
+   * reads it, so an event that reuses another's table says so ("shares 3x3x3")
+   * rather than repeating the number.
+   *
+   * That phrasing does not fit every sentence. Anything that needs the actual
+   * duration wants `coldCost(event)`, not this.
+   */
   readonly firstCall: string;
   /**
    * Cost of every call afterwards. These are randomised searches rather than
    * fixed-cost lookups, so the honest answer is a range, not an average.
+   *
+   * For a multi-scramble event this is the cost **per cube** and says so, since
+   * the call as a whole costs `count` times it.
    */
   readonly afterwards: string;
 }
+
+/**
+ * How long each pruning table takes to build, measured on the machine that
+ * produced the rows below.
+ *
+ * Keyed by table rather than by event because that is what the cost actually
+ * depends on: five events share the `333` build and all five pay exactly this
+ * once, whichever of them is asked for first.
+ */
+const TABLE_COLD_COST: Record<NonNullable<TableGroup>, string> = {
+  '222': '~4 s',
+  '333': '~8 s',
+  '444': '~7 s',
+  pyram: '~200 ms',
+  skewb: '~600 ms',
+  sq1: '~4 s',
+};
 
 /**
  * All seventeen WCA events, in official WCA order.
@@ -51,7 +78,16 @@ export const WCA_EVENTS: readonly WcaEvent[] = [
   { id: 'sq1', name: 'Square-1', table: 'sq1', firstCall: '~4 s', afterwards: '1 ms - 2 s' },
   { id: '444bf', name: '4x4x4 Blindfolded', table: '444', firstCall: 'shares 4x4x4', afterwards: '400 ms - 1 s' },
   { id: '555bf', name: '5x5x5 Blindfolded', table: null, firstCall: 'none', afterwards: 'under 1 ms' },
-  { id: '333mbf', name: '3x3x3 Multi-Blind', table: null, firstCall: '-', afterwards: '-' },
+  // One attempt over many cubes, each cube a full random-state 3x3x3 solve, so
+  // this is the only row whose steady-state cost is per *cube* rather than per
+  // call — a `count` of 10 costs ten times what is quoted here.
+  {
+    id: '333mbf',
+    name: '3x3x3 Multi-Blind',
+    table: '333',
+    firstCall: 'shares 3x3x3',
+    afterwards: '40 ms - 1 s per cube',
+  },
 ];
 
 const BY_ID = new Map(WCA_EVENTS.map((event) => [event.id, event]));
@@ -60,6 +96,18 @@ export function getEvent(id: WcaEventId): WcaEvent {
   const event = BY_ID.get(id);
   if (!event) throw new Error(`unknown event "${id}"`);
   return event;
+}
+
+/**
+ * How long this event's cold start actually takes, or `null` when it needs no
+ * table and so has none.
+ *
+ * `firstCall` cannot answer this for the five events that share another's
+ * table: it reads "shares 3x3x3", which is right in a table cell and nonsense
+ * in a sentence like "this will freeze the page for about …".
+ */
+export function coldCost(event: WcaEvent): string | null {
+  return event.table === null ? null : TABLE_COLD_COST[event.table];
 }
 
 /** Narrows an arbitrary string from a query param or form field to a `WcaEventId`. */

@@ -10,7 +10,7 @@ import {
 import { useState } from 'react';
 
 import type { Run, RunError, RunMode, ScrambleResponse } from '@/lib/api';
-import { getEvent } from '@/lib/events';
+import { coldCost, getEvent } from '@/lib/events';
 
 import { EventPicker } from './event-picker';
 import { ScrambleOutput } from './scramble-output';
@@ -324,10 +324,11 @@ export function Playground() {
           <p>
             Multi-Blind is one attempt over many cubes, so this is the only event that takes a{' '}
             <code className="font-mono text-neutral-200">count</code>. Each cube is a full
-            random-state solve of roughly 100&nbsp;ms once the 3x3x3 table is warm, so{' '}
-            {MAX_SCRAMBLE_COUNT} of them is about ten seconds — and in browser mode that is ten
-            seconds of blocked main thread. The cost is shown rather than hidden; that is the point
-            of this page.
+            random-state solve — measured at {selected.afterwards} once the 3x3x3 table is warm,
+            typically nearer the bottom of that range but occasionally the top, because it is a
+            randomised search rather than a lookup. So {MAX_SCRAMBLE_COUNT} of them is tens of
+            seconds, and in browser mode every one of those seconds is a blocked main thread. The
+            cost is shown rather than hidden; that is the point of this page.
           </p>
           <p>
             The draws are independent and deliberately not de-duplicated, so a repeat is legitimate
@@ -366,8 +367,16 @@ export function Playground() {
         <p className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-relaxed text-amber-200/90">
           Heads up: the {selected.name} pruning table has not been built in this tab yet. In browser
           mode that build runs on the main thread and will freeze this page for about{' '}
-          {selected.firstCall} — no spinner will animate, scrolling will stop, and the tab may go
-          grey. Every later call for this event is then {selected.afterwards}.
+          {/*
+            Not `selected.firstCall`: for the five events that reuse another
+            event's table that field reads "shares 3x3x3", which is right in a
+            table cell and nonsense in this sentence.
+          */}
+          {coldCost(selected)} — no spinner will animate, scrolling will stop, and the tab may go
+          grey. Every later call for this event is then {selected.afterwards}
+          {multi ? `, so ${countUsable ? countValue : DEFAULT_COUNT} cubes cost that many times over`
+            : ''}
+          .
         </p>
       ) : null}
 

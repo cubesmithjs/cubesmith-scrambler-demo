@@ -20,11 +20,18 @@ npm run dev
 `/` generates a scramble for any of the seventeen WCA events, either in a Route
 Handler or in a Client Component, and times whichever one you pick. There is a
 seed field (same seed plus same event always gives the same moves), a badge
-showing whether the scramble is `random-state` or `random-moves`, and `333mbf` —
-the one unimplemented event — rendered as a caught `UnimplementedEventError`
-rather than a crash.
+showing whether the scramble is `random-state` or `random-moves`, and — for
+`333mbf`, the one multi-scramble event — a cube count and a numbered list of the
+scrambles that attempt covers.
 
-`/code` has the four snippets worth copying. They are read from the real files in
+Every one of the seventeen generates as of `@cubesmith/scrambler` 0.10.0, which
+registered `333mbf` last. Nothing in the picker can produce an
+`UnimplementedEventError` any more, so the demonstration of a typed failure moved
+to one you *can* still hit: passing `count` to an event that does not take one,
+which raises `InvalidScrambleCountError` rather than being quietly ignored. The
+count help text has a link that does it on purpose.
+
+`/code` has the five snippets worth copying. They are read from the real files in
 [`src/examples/`](src/examples) at build time, so they are type-checked by the
 same `npm run build` that ships them and cannot silently rot.
 
@@ -53,11 +60,17 @@ page shows you the real numbers for your own machine:
 | `444` | ~7 s | 110 ms – 1.3 s |
 | `sq1` | ~4 s | 1 ms – 2 s |
 | `pyram`, `skewb` | 0.2–0.6 s | under 1 ms |
+| `333mbf` | shares `333` | 40 ms – 1 s **per cube** |
 | `clock`, `555`, `666`, `777`, `minx` | no table | under 1 ms |
 
 Steady-state cost is a range rather than an average because these are randomised
-searches. Events also *share* tables: once a `333` is warm, `333bf`, `333fm` and
-`333oh` are warm too.
+searches. Events also *share* tables: once a `333` is warm, `333bf`, `333fm`,
+`333oh` and `333mbf` are warm too.
+
+`333mbf` is the one row measured **per cube**, because one Multi-Blind attempt
+covers many: a `count` of 10 costs ten of those draws, not one. That makes it the
+sharpest example of the trade-off above — at the top of the range, a large attempt
+is a browser tab frozen for the better part of a minute.
 
 `random-moves` is not a weaker result. WCA Regulation 4b3e requires it for 5x5x5,
 6x6x6, 7x7x7 and Megaminx, so for those events a random-state scramble would be
