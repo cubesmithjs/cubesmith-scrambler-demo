@@ -1,0 +1,35 @@
+{
+  "name": "cubesmith-scrambler-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A small Next.js reference app showing how to call @cubesmith/scrambler from both the server and the browser.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cubesmithjs/cubesmith-scrambler-demo.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cubesmith/scrambler": "0.9.1",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.8",
+    "@types/react-dom": "19.2.4",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}

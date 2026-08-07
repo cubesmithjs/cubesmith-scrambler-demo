@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+/*
+ * Dark only, on purpose. A light theme would double every colour class in this
+ * repo, and the code being easy to read straight through matters more here
+ * than theme coverage.
+ */
+html {
+  color-scheme: dark;
+}
