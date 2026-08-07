@@ -5,6 +5,8 @@ the dependency-free WCA scramble generator. It exists to show you how to call th
 package, not to be a cubing app: no 3D renderer, no timer, no history, no state
 library. Two pages, and you can read all of it in ten minutes.
 
+- **Live** — https://cubesmithjs.github.io/cubesmith-scrambler-demo/ — the static
+  build, so browser mode only; see [Deploying](#deploying) for why
 - **Package repo** — https://github.com/cubesmithjs/cubesmith-scrambler
 - **npm** — https://www.npmjs.com/package/@cubesmith/scrambler
 
