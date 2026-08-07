@@ -13,8 +13,6 @@ npm install
 npm run dev
 ```
 
-Deploys to Vercel with zero configuration.
-
 ## What it shows
 
 `/` generates a scramble for any of the seventeen WCA events, either in a Route
@@ -62,6 +60,34 @@ searches. Events also *share* tables: once a `333` is warm, `333bf`, `333fm` and
 `random-moves` is not a weaker result. WCA Regulation 4b3e requires it for 5x5x5,
 6x6x6, 7x7x7 and Megaminx, so for those events a random-state scramble would be
 the non-conforming one.
+
+## Deploying
+
+One source tree, two builds.
+
+**Anywhere with compute** (Vercel, or any Node host) — `npm run build`, the
+default. The Route Handler runs, both call sites work, nothing to configure.
+
+**GitHub Pages** — Pages serves files and runs no code, so that build ships
+browser mode only and says so on the page. `.github/workflows/pages.yml` does
+it on every push to `main`: delete `src/app/api` (a dynamic Route Handler makes
+`output: export` fail outright), build with `STATIC_EXPORT=1`, and write
+`.nojekyll` so Pages stops stripping Next's `_next/` directory. Set Pages
+**Source** to **GitHub Actions** once; nothing else.
+
+Reproduce that build locally with:
+
+```bash
+rm -rf src/app/api && STATIC_EXPORT=1 npm run build   # writes ./out
+```
+
+Two things about the static build worth knowing before you fork it. `basePath`
+is hardcoded to `/cubesmith-scrambler-demo` for the project-site subpath, so a
+different repo name or a custom domain means editing `next.config.ts` or every
+asset 404s. And link prefetching is switched off there, because Next's segment
+prefetch requests `__next.code.__PAGE__.txt` while the export writes
+`__next.code/__PAGE__.txt` — navigation falls back and still works, but every
+hover would otherwise 404.
 
 ## Licence
 

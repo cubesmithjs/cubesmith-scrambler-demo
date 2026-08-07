@@ -23,6 +23,13 @@ function nextPaint(): Promise<void> {
   });
 }
 
+/**
+ * True in the static GitHub Pages build, which has no server to call. Inlined
+ * at build time by `next.config.ts`, so the server branch below is dropped
+ * from that bundle entirely rather than being hidden at runtime.
+ */
+const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
+
 function toRunError(error: unknown): RunError {
   if (error instanceof UnimplementedEventError) {
     return { kind: 'unimplemented', message: error.message };
@@ -38,7 +45,7 @@ interface Pending {
 
 export function Playground() {
   const [event, setEvent] = useState<WcaEventId>('333');
-  const [mode, setMode] = useState<RunMode>('server');
+  const [mode, setMode] = useState<RunMode>(STATIC_EXPORT ? 'client' : 'server');
   const [seed, setSeed] = useState('');
   const [run, setRun] = useState<Run | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
@@ -149,35 +156,45 @@ export function Playground() {
 
   return (
     <div className="flex flex-col gap-6">
-      <fieldset className="flex flex-col gap-3" disabled={busy}>
-        <legend className="sr-only">Where to generate the scramble</legend>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-neutral-400">Run on</span>
-          <div className="inline-flex rounded-lg border border-neutral-800 p-1">
-            {(['server', 'client'] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setMode(option)}
-                aria-pressed={mode === option}
-                className={[
-                  'rounded-md px-4 py-1.5 text-sm font-medium transition',
-                  mode === option
-                    ? 'bg-emerald-500/15 text-emerald-300'
-                    : 'text-neutral-400 hover:text-neutral-200',
-                ].join(' ')}
-              >
-                {option === 'server' ? 'Server' : 'Browser'}
-              </button>
-            ))}
+      {STATIC_EXPORT ? (
+        <p className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-sm leading-relaxed text-neutral-400">
+          This is the static GitHub Pages build. Pages serves files and runs no
+          code, so there is no Route Handler here and every scramble below is generated in your
+          browser. That half still proves the useful thing — the package really does run client-side
+          with no Worker. For the server/browser comparison and its timings, run the app anywhere
+          with compute; see the README.
+        </p>
+      ) : (
+        <fieldset className="flex flex-col gap-3" disabled={busy}>
+          <legend className="sr-only">Where to generate the scramble</legend>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-neutral-400">Run on</span>
+            <div className="inline-flex rounded-lg border border-neutral-800 p-1">
+              {(['server', 'client'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setMode(option)}
+                  aria-pressed={mode === option}
+                  className={[
+                    'rounded-md px-4 py-1.5 text-sm font-medium transition',
+                    mode === option
+                      ? 'bg-emerald-500/15 text-emerald-300'
+                      : 'text-neutral-400 hover:text-neutral-200',
+                  ].join(' ')}
+                >
+                  {option === 'server' ? 'Server' : 'Browser'}
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-neutral-500">
+              {mode === 'server'
+                ? 'A Route Handler generates it. Tables stay warm in the server process, so only the first request pays the cold start.'
+                : 'The same call, in a Client Component. No Worker, no bundler workaround — and no thread to hide the work on.'}
+            </p>
           </div>
-          <p className="text-sm text-neutral-500">
-            {mode === 'server'
-              ? 'A Route Handler generates it. Tables stay warm in the server process, so only the first request pays the cold start.'
-              : 'The same call, in a Client Component. No Worker, no bundler workaround — and no thread to hide the work on.'}
-          </p>
-        </div>
-      </fieldset>
+        </fieldset>
+      )}
 
       <EventPicker value={event} onChange={setEvent} disabled={busy} />
 

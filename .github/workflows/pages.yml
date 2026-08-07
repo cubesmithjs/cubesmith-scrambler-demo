@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The default GITHUB_TOKEN is read-only; publishing to Pages needs these.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deploy finish rather than cancelling it half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Pages serves files and runs no code, so the Route Handler cannot come
+      # along: `output: export` fails outright on a dynamic route. Deleting it
+      # here rather than in the repo leaves the normal build — the one with both
+      # call sites, deployed anywhere with compute — completely untouched.
+      - name: Drop the server-only Route Handler
+        run: rm -rf src/app/api
+
+      - name: Build the static export
+        run: npm run build
+        env:
+          STATIC_EXPORT: '1'
+
+      # Without this Pages pipes the output through Jekyll, which skips every
+      # path beginning with an underscore — including Next's _next/ directory,
+      # so the site would load with no JavaScript and no styles.
+      - name: Disable Jekyll
+        run: touch out/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

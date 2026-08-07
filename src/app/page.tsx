@@ -2,6 +2,9 @@ import Link from 'next/link';
 
 import { Playground } from '@/components/playground';
 
+/** True in the static GitHub Pages build, which has no server half to compare against. */
+const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
+
 export default function HomePage() {
   return (
     <div className="flex flex-col gap-12">
@@ -52,15 +55,19 @@ export default function HomePage() {
         </div>
 
         <p className="leading-relaxed text-neutral-400">
-          Toggle the switch above and watch the elapsed time. The first call for an event is slow,
-          the next ones are not, and events that share a table share the warm-up — generate a 3x3x3
-          and the blindfolded, one-handed and fewest-moves variants are already fast. Events with no
-          table at all, like Clock and Megaminx, are instant from the very first call.
+          {STATIC_EXPORT ? 'Watch the elapsed time as you generate.' : 'Toggle the switch above and watch the elapsed time.'} The first call for an event is
+          slow, the next ones are not, and events that share a table share the warm-up — generate a
+          3x3x3 and the blindfolded, one-handed and fewest-moves variants are already fast. Events
+          with no table at all, like Clock and Megaminx, are instant from the very first call.
         </p>
 
         <p className="leading-relaxed text-neutral-400">
           The snippets on the{' '}
-          <Link href="/code" className="text-emerald-400 hover:text-emerald-300">
+          <Link
+            href="/code"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
             code page
           </Link>{' '}
           are read from real files in this repo, so they are type-checked by the same build that
