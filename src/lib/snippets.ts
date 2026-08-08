@@ -8,55 +8,150 @@ export interface Snippet {
   readonly source: string;
 }
 
-const EXAMPLES: readonly Omit<Snippet, 'source'>[] = [
+export interface SnippetGroup {
+  readonly title: string;
+  /** What this group of calls is for, and when you would reach for it rather than another. */
+  readonly blurb: string;
+  readonly snippets: readonly Snippet[];
+}
+
+type SnippetSpec = Omit<Snippet, 'source'>;
+type GroupSpec = Omit<SnippetGroup, 'snippets'> & { readonly snippets: readonly SnippetSpec[] };
+
+/**
+ * Every public export of `@cubesmith/scrambler`, grouped by the job you are
+ * doing rather than by the module it lives in.
+ *
+ * The grouping is the useful part: the package has two halves that never touch
+ * each other — one generates scrambles and pays for pruning tables, the other
+ * reads notation and costs microseconds — plus two small primitive surfaces.
+ * Reading the export list alphabetically hides that entirely.
+ */
+const GROUPS: readonly GroupSpec[] = [
   {
-    title: 'Generate a scramble',
-    file: 'basic.ts',
-    description: 'The whole API for the common case: one call, one await.',
+    title: 'Generating scrambles',
+    blurb:
+      'The half of the package that builds pruning tables. Where you call it is the decision that matters — see the demo page for the timings.',
+    snippets: [
+      {
+        title: 'Generate a scramble',
+        file: 'basic.ts',
+        description: 'The whole API for the common case: one call, one await.',
+      },
+      {
+        title: 'Reproduce a scramble from a seed',
+        file: 'seeded.ts',
+        description:
+          'A seed makes generation deterministic, so the same seed and event give identical moves anywhere.',
+      },
+      {
+        title: 'Check an event is supported',
+        file: 'guard.ts',
+        description:
+          'The type union covers every WCA event; the registry decides which ones actually generate.',
+      },
+      {
+        title: 'Generate a Multi-Blind attempt',
+        file: 'multi-blind.ts',
+        description:
+          'The one event that takes a count, why result.moves still works unchanged, and why passing count anywhere else is an error rather than a no-op.',
+      },
+      {
+        title: 'Catch UnimplementedEventError',
+        file: 'catching-error.ts',
+        description:
+          'The typed failure you get for an event with no scrambler, and how to handle it. No event triggers it since 0.10.0 completed the set — worth keeping anyway, since the union covers events the registry may not.',
+      },
+    ],
   },
   {
-    title: 'Reproduce a scramble from a seed',
-    file: 'seeded.ts',
-    description:
-      'A seed makes generation deterministic, so the same seed and event give identical moves anywhere.',
+    title: 'Reading notation',
+    blurb:
+      'The other half. No puzzle, no tables, no cold start — a parser, a serializer and an inverter over full WCA algorithm notation.',
+    snippets: [
+      {
+        title: 'Parse, invert, serialize',
+        file: 'notation.ts',
+        description:
+          'The round trip, the three spellings that normalise on the way through, and the notations this grammar deliberately refuses.',
+      },
+      {
+        title: 'Walk the tree',
+        file: 'ast-walk.ts',
+        description:
+          'Counting moves through groups, commutators and conjugates — and why a switch over node.type needs no default arm.',
+      },
+    ],
   },
   {
-    title: 'Check an event is supported',
-    file: 'guard.ts',
-    description:
-      'The type union covers every WCA event; the registry decides which ones actually generate.',
+    title: 'Validating what somebody typed',
+    blurb:
+      'New in 0.11.0: a non-throwing check, and errors you can classify and translate without string-matching an English sentence.',
+    snippets: [
+      {
+        title: 'Validate a text field',
+        file: 'validating-input.ts',
+        description:
+          'validateAlgorithm on every keystroke versus parseAlgorithm on a stored library — the same parser, two different situations, and the one thing validateAlgorithm refuses to swallow.',
+      },
+      {
+        title: 'Write the message yourself',
+        file: 'syntax-messages.ts',
+        description:
+          'All twenty reason codes turned into sentences, in two languages, because the package ships neither. This is the exact file the notation page renders from.',
+      },
+    ],
   },
   {
-    title: 'Generate a Multi-Blind attempt',
-    file: 'multi-blind.ts',
-    description:
-      'The one event that takes a count, why result.moves still works unchanged, and why passing count anywhere else is an error rather than a no-op.',
-  },
-  {
-    title: 'Catch UnimplementedEventError',
-    file: 'catching-error.ts',
-    description:
-      'The typed failure you get for an event with no scrambler, and how to handle it. No event triggers it as of 0.10.0 — worth keeping anyway, since the union covers events the registry may not.',
+    title: 'Primitives',
+    blurb:
+      'Two small surfaces worth knowing exist, both exported so you do not maintain your own copy.',
+    snippets: [
+      {
+        title: 'Single-layer face moves',
+        file: 'move-primitives.ts',
+        description:
+          'FaceMove and its helpers, for building sequences rather than reading them — and why parseMove is not parseAlgorithm.',
+      },
+      {
+        title: 'Seeded randomness of your own',
+        file: 'random-source.ts',
+        description:
+          'The same RandomSource the scramblers draw from, so one seed can reproduce your decisions as well as the cubes. Not cryptographic when seeded, on purpose.',
+      },
+    ],
   },
 ];
 
 /**
- * Reads each snippet out of the real file in `src/examples/`, so what this page
+ * Reads each snippet out of the real file in `src/examples/`, so what the page
  * shows is exactly what the compiler checks. Those files are inside `tsconfig`'s
- * `include`, which means `npm run build` type-checks every line printed here —
+ * `include`, which means `npm run build` type-checks every line printed there —
  * a snippet cannot rot against a package upgrade without failing the build.
+ *
+ * Two of them are not illustrations at all: `syntax-messages.ts` and
+ * `validating-input.ts` are imported by the notation page, so that page and the
+ * code page cannot disagree about how an error becomes a sentence.
  *
  * The `/code` page is statically rendered, so this runs at build time and the
  * result is baked into the HTML. No file reads happen at request time, which is
  * what keeps it working on a serverless host where `src/` is not deployed.
  */
-export async function loadSnippets(): Promise<Snippet[]> {
+export async function loadSnippets(): Promise<SnippetGroup[]> {
   const directory = path.join(process.cwd(), 'src', 'examples');
 
   return Promise.all(
-    EXAMPLES.map(async (example) => ({
-      ...example,
-      source: (await readFile(path.join(directory, example.file), 'utf8')).trim(),
+    GROUPS.map(async (group) => ({
+      ...group,
+      snippets: await Promise.all(
+        group.snippets.map(async (snippet) => ({
+          ...snippet,
+          source: (await readFile(path.join(directory, snippet.file), 'utf8')).trim(),
+        })),
+      ),
     })),
   );
 }
+
+/** How many files the code page prints, for a sentence that would otherwise go stale. */
+export const SNIPPET_COUNT = GROUPS.reduce((total, group) => total + group.snippets.length, 0);

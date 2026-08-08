@@ -16,7 +16,22 @@ export default function HomePage() {
           <code className="font-mono text-neutral-200">@cubesmith/scrambler</code> generates WCA
           scrambles with no dependencies, no Web Worker, and no DOM — so the same call works in a
           Route Handler and in a Client Component. This page runs it both ways and times it, because
-          the interesting part of this package is not the API, it is where you choose to call it.
+          the interesting part of this half of the package is not the API, it is where you choose to
+          call it.
+        </p>
+        <p className="mt-3 leading-relaxed text-neutral-400">
+          The other half reads notation rather than printing it: parse an algorithm into a typed
+          tree, invert it, write it back, or validate a text field on every keystroke and get a
+          stable error code you can translate yourself. That half needs no tables and has no cold
+          start, so it lives on its own page —{' '}
+          <Link
+            href="/notation"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Notation
+          </Link>
+          .
         </p>
       </section>
 
@@ -62,6 +77,18 @@ export default function HomePage() {
         </p>
 
         <p className="leading-relaxed text-neutral-400">
+          None of this applies to the notation half: a parser has no table to build, so{' '}
+          <Link
+            href="/notation"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            that page
+          </Link>{' '}
+          is fast everywhere and the server/browser question does not arise.
+        </p>
+
+        <p className="leading-relaxed text-neutral-400">
           The snippets on the{' '}
           <Link
             href="/code"
@@ -70,8 +97,8 @@ export default function HomePage() {
           >
             code page
           </Link>{' '}
-          are read from real files in this repo, so they are type-checked by the same build that
-          ships them.
+          cover every public export, and are read from real files in this repo — so they are
+          type-checked by the same build that ships them.
         </p>
       </section>
     </div>

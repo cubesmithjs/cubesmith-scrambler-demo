@@ -1,5 +1,5 @@
 import { CodeBlock } from '@/components/code-block';
-import { loadSnippets } from '@/lib/snippets';
+import { loadSnippets, SNIPPET_COUNT } from '@/lib/snippets';
 
 /**
  * Statically rendered, so the example files are read at build time and baked
@@ -8,27 +8,39 @@ import { loadSnippets } from '@/lib/snippets';
 export const dynamic = 'force-static';
 
 export default async function CodePage() {
-  const snippets = await loadSnippets();
+  const groups = await loadSnippets();
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-12">
       <section>
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-50">Code</h1>
         <p className="mt-3 leading-relaxed text-neutral-400">
-          The five things you actually need. Each block below is read verbatim from a real file in
-          this repo at build time, and those files are covered by{' '}
+          Every public export of the package, across {SNIPPET_COUNT} files, grouped by the job
+          rather than by the module. Each block below is read verbatim from a real file in this repo
+          at build time, and those files are covered by{' '}
           <code className="font-mono text-neutral-200">npm run build</code>&rsquo;s type check — so
           nothing here can drift out of date without breaking the build.
         </p>
       </section>
 
-      {snippets.map((snippet) => (
-        <section key={snippet.file} className="flex flex-col gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-neutral-100">{snippet.title}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-neutral-400">{snippet.description}</p>
+      {groups.map((group) => (
+        <section key={group.title} className="flex flex-col gap-8">
+          <div className="border-b border-neutral-900 pb-3">
+            <h2 className="text-xl font-semibold tracking-tight text-neutral-100">{group.title}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">{group.blurb}</p>
           </div>
-          <CodeBlock code={snippet.source} filename={`src/examples/${snippet.file}`} />
+
+          {group.snippets.map((snippet) => (
+            <div key={snippet.file} className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-100">{snippet.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-neutral-400">
+                  {snippet.description}
+                </p>
+              </div>
+              <CodeBlock code={snippet.source} filename={`src/examples/${snippet.file}`} />
+            </div>
+          ))}
         </section>
       ))}
 
@@ -41,6 +53,12 @@ export default async function CodePage() {
           importing it registers the puzzles — so do not add bundler config that marks it
           side-effect free. Tree-shaking those registrations away leaves an empty registry where
           every event throws.
+        </p>
+        <p className="text-sm leading-relaxed text-neutral-400">
+          There is one entry point, so the notation layer ships to every consumer whether they parse
+          anything or not. It is small — the whole package is around 46 kB gzipped, of which 0.11.0
+          added under a kilobyte — but it is not conditional, and that is worth knowing before you
+          budget for it.
         </p>
       </section>
     </div>

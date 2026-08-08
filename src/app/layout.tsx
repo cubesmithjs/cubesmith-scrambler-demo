@@ -7,7 +7,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '@cubesmith/scrambler demo',
   description:
-    'A small Next.js reference app showing how to call the @cubesmith/scrambler npm package from both the server and the browser.',
+    'A small Next.js reference app showing every way to call the @cubesmith/scrambler npm package — generating scrambles on the server or in the browser, and reading, inverting and validating WCA notation.',
 };
 
 const NPM_URL = 'https://www.npmjs.com/package/@cubesmith/scrambler';
@@ -18,7 +18,7 @@ const PACKAGE_REPO_URL = 'https://github.com/cubesmithjs/cubesmith-scrambler';
  * `output: export` writes that payload to `__next.code/__PAGE__.txt`, so on a
  * plain static host every hover over a nav link 404s. Navigation still works —
  * it falls back to the full payload — but a demo people will open devtools on
- * should not ship a red line in the network tab. Two pages of static HTML have
+ * should not ship a red line in the network tab. Three pages of static HTML have
  * nothing to gain from prefetching anyway.
  */
 const PREFETCH = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1' ? false : undefined;
@@ -38,7 +38,10 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
             </Link>
             <nav className="flex items-center gap-5 text-sm text-neutral-400">
               <Link href="/" prefetch={PREFETCH} className="hover:text-neutral-100">
-                Demo
+                Scrambles
+              </Link>
+              <Link href="/notation" prefetch={PREFETCH} className="hover:text-neutral-100">
+                Notation
               </Link>
               <Link href="/code" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Code

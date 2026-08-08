@@ -2,11 +2,13 @@
 
 A small Next.js reference app for [`@cubesmith/scrambler`](https://www.npmjs.com/package/@cubesmith/scrambler),
 the dependency-free WCA scramble generator. It exists to show you how to call the
-package, not to be a cubing app: no 3D renderer, no timer, no history, no state
-library. Two pages, and you can read all of it in ten minutes.
+package — every public export of it, on 0.11.0 — not to be a cubing app: no 3D
+renderer, no timer, no history, no state library. Three pages, and you can read
+all of it in fifteen minutes.
 
 - **Live** — https://cubesmithjs.github.io/cubesmith-scrambler-demo/ — the static
-  build, so browser mode only; see [Deploying](#deploying) for why
+  build, so scramble generation is browser-only there; see [Deploying](#deploying)
+  for why. `/notation` is unaffected, since a parser needs no server
 - **Package repo** — https://github.com/cubesmithjs/cubesmith-scrambler
 - **npm** — https://www.npmjs.com/package/@cubesmith/scrambler
 
@@ -17,23 +19,51 @@ npm run dev
 
 ## What it shows
 
-`/` generates a scramble for any of the seventeen WCA events, either in a Route
-Handler or in a Client Component, and times whichever one you pick. There is a
-seed field (same seed plus same event always gives the same moves), a badge
-showing whether the scramble is `random-state` or `random-moves`, and — for
-`333mbf`, the one multi-scramble event — a cube count and a numbered list of the
-scrambles that attempt covers.
+The package has two halves that never touch each other, and the demo is laid out
+that way.
 
-Every one of the seventeen generates as of `@cubesmith/scrambler` 0.10.0, which
-registered `333mbf` last. Nothing in the picker can produce an
-`UnimplementedEventError` any more, so the demonstration of a typed failure moved
-to one you *can* still hit: passing `count` to an event that does not take one,
-which raises `InvalidScrambleCountError` rather than being quietly ignored. The
-count help text has a link that does it on purpose.
+**`/` — generating scrambles.** Any of the seventeen WCA events, either in a Route
+Handler or in a Client Component, timed whichever one you pick. There is a seed
+field (same seed plus same event always gives the same moves), a badge showing
+whether the scramble is `random-state` or `random-moves`, and — for `333mbf`, the
+one multi-scramble event — a cube count and a numbered list of the scrambles that
+attempt covers.
 
-`/code` has the five snippets worth copying. They are read from the real files in
-[`src/examples/`](src/examples) at build time, so they are type-checked by the
-same `npm run build` that ships them and cannot silently rot.
+Every one of the seventeen generates since 0.10.0, which registered `333mbf` last.
+Nothing in the picker can produce an `UnimplementedEventError` any more, so the
+demonstration of a typed failure moved to one you *can* still hit: passing `count`
+to an event that does not take one, which raises `InvalidScrambleCountError`
+rather than being quietly ignored. The count help text has a link that does it on
+purpose.
+
+**`/notation` — reading it.** A live workbench over the other half:
+`parseAlgorithm` into a typed tree (rendered as a tree, so you can see that
+`[R: (U Rw U')2]` is one conjugate and not five tokens), `serializeAlgorithm` back
+out, `invertAlgorithm`, and `validateAlgorithm` on every keystroke. It carries a
+row per construct the grammar accepts, a row per way it can fail — nineteen of the
+twenty documented `reason` codes, the twentieth being a residual nothing reaches —
+and the three foreign notations it refuses on purpose.
+
+That page is where 0.11.0 shows up. A syntax error now carries a stable `reason`
+code, a `length` so you can underline the offending *token* rather than pointing
+at its first character, and whatever a message would interpolate (`char`,
+`family`, `outer`/`inner`, `count`). The page renders a compiler-style caret line
+from `offset` and `length`, and writes the sentence in **English or French from a
+switch you can toggle** — because the package ships no message strings beyond the
+English `.message` and never will. Both wordings live in one table in
+[`src/examples/syntax-messages.ts`](src/examples/syntax-messages.ts), which the
+page imports rather than duplicates.
+
+Nothing on `/notation` builds a pruning table, so it is instant everywhere and the
+server-or-browser question below does not arise for it.
+
+**`/code` — the eleven files worth copying,** grouped by job: generating,
+reading notation, validating input, and the two primitive surfaces (`FaceMove`
+helpers, and `createRandomSource` for seeding your own draws off the same value as
+the scramble). Between them they touch every public export. They are read from the
+real files in [`src/examples/`](src/examples) at build time, so they are
+type-checked by the same `npm run build` that ships them and cannot silently rot —
+and two of them are the code `/notation` actually runs, not illustrations of it.
 
 ## Server or browser?
 
