@@ -1,8 +1,8 @@
 import { generateScramble, isImplementedEvent, type WcaEventId } from '@cubesmith/scrambler';
 
 // `WcaEventId` is the full WCA event union. It describes the events the
-// package aims to cover, not the ones it can generate today — the two happen
-// to coincide as of 0.10.0, which registered '333mbf' and took coverage to all
+// package aims to cover, not the ones it can generate today — the two have
+// coincided since 0.10.0, which registered '333mbf' and took coverage to all
 // seventeen, but they are still separate things and a future WCA event would
 // separate them again.
 //
@@ -11,7 +11,7 @@ import { generateScramble, isImplementedEvent, type WcaEventId } from '@cubesmit
 // the supported list — including on the release that makes the list complete.
 export async function guarded(event: WcaEventId) {
   if (!isImplementedEvent(event)) {
-    return null; // Unreachable on 0.10.0. Still the right thing to write.
+    return null; // Unreachable since 0.10.0. Still the right thing to write.
   }
 
   return generateScramble(event);
