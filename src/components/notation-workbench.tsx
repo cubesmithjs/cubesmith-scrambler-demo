@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 
 import { describeSyntaxError, underlineSpan, type MessageLocale } from '@/examples/syntax-messages';
 import {
+  foreignNotationFor,
   FOREIGN_NOTATION_SAMPLES,
   INVALID_SAMPLES,
   VALID_SAMPLES,
@@ -318,12 +319,23 @@ export function NotationWorkbench() {
           you know it came from a cube event.
         </p>
         <SampleList samples={FOREIGN_NOTATION_SAMPLES} onPick={setInput} active={input} />
-        <p className="text-xs text-neutral-500">
-          Each of those throws{' '}
+        <p className="text-xs leading-relaxed text-neutral-500">
+          Each throws{' '}
           <code className="font-mono text-neutral-400">
             {foreign[0]?.error ? foreign[0].error.name : 'AlgorithmSyntaxError'}
-          </code>{' '}
-          — click one and read the message.
+          </code>
+          , and each throws it at{' '}
+          <span className="text-neutral-400">
+            {foreign
+              .map((row) => (row.error ? `character ${row.error.offset}` : 'no error'))
+              .join(', ')}
+          </span>{' '}
+          — not at the start. The parser recognises no notation but its own: it reads whatever valid
+          cube moves come first and stops at the first character it cannot, so{' '}
+          <code className="font-mono text-neutral-400">UR2</code> in that Clock scramble parses
+          happily as <code className="font-mono text-neutral-400">U R2</code> before the{' '}
+          <code className="font-mono text-neutral-400">+</code> ends it. Click one and read the note
+          the panel adds — the error itself cannot tell a foreign notation from a typo.
         </p>
       </section>
     </div>
@@ -356,10 +368,72 @@ function SampleList({
           >
             {sample.input}
           </button>
-          <span className="text-sm text-neutral-500">{sample.note}</span>
+          <span className="text-sm text-neutral-500">
+            {sample.puzzle ? (
+              <>
+                <span className="text-neutral-300">{sample.puzzle}</span> — {sample.note}
+              </>
+            ) : (
+              sample.note
+            )}
+          </span>
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * What the error cannot tell you: that this was never cube notation in the first
+ * place.
+ *
+ * `parseAlgorithm` recognises no notation but its own. It reads valid cube moves
+ * until it meets a character it cannot, so a Clock scramble comes back as
+ * `not-a-move` on a `+` — the same code, and the same shape of message, as a
+ * typo. Only this repo knows the input was a Clock scramble, so only this repo
+ * can say so, and the consumer-side lesson is the one worth printing: parse a
+ * scramble only when you already know which event produced it.
+ */
+function ForeignNotationNote({
+  sample,
+  error,
+}: {
+  readonly sample: NotationSample;
+  readonly error: AlgorithmSyntaxError;
+}) {
+  /** What the parser accepted as ordinary cube notation before it stopped. */
+  const consumed = error.input.slice(0, error.offset).trim();
+
+  return (
+    <div className="mt-4 rounded-lg border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-sm leading-relaxed text-neutral-300">
+      <p>
+        <span className="font-semibold text-sky-300">This is {sample.puzzle} notation.</span> The
+        refusal is deliberate — but notice that the error does not say so, and cannot: the message
+        above is the same one a typo gets.
+      </p>
+      <p className="mt-2 text-neutral-400">
+        {consumed ? (
+          <>
+            The parser read{' '}
+            <code className="font-mono text-neutral-200">{consumed}</code> as ordinary cube notation
+            first, and only stopped at character {error.offset}. It recognises no notation but its
+            own; it reads what it can and reports the first character it cannot.
+          </>
+        ) : (
+          <>
+            It failed at the very first character. Nothing here was cube notation, but the error
+            still describes a character rather than a notation.
+          </>
+        )}{' '}
+        So the rule this leaves you with is about your own code, not about the package:{' '}
+        <span className="text-neutral-200">
+          parse a scramble only when you already know which event produced it
+        </span>{' '}
+        — <code className="font-mono text-neutral-200">result.event</code> from{' '}
+        <code className="font-mono text-neutral-200">generateScramble</code> tells you, and so does
+        the row a scramble was stored against.
+      </p>
+    </div>
   );
 }
 
@@ -374,6 +448,7 @@ function ErrorPanel({
 }) {
   const span = underlineSpan(error);
   const payload = payloadOf(error);
+  const foreign = foreignNotationFor(input);
 
   return (
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-5">
@@ -404,8 +479,12 @@ function ErrorPanel({
       <p className="mt-2 text-xs text-neutral-500">
         {span.missing
           ? `length is 0 — the text is missing at character ${span.start} rather than wrong, so that is a caret and not an underline.`
-          : `Characters ${span.start} to ${span.start + span.width - 1}.`}
+          : span.width === 1
+            ? `Character ${span.start}.`
+            : `Characters ${span.start} to ${span.start + span.width - 1}.`}
       </p>
+
+      {foreign ? <ForeignNotationNote sample={foreign} error={error} /> : null}
 
       <dl className="mt-5 grid gap-x-6 gap-y-2 border-t border-amber-500/20 pt-4 text-sm sm:grid-cols-[auto_1fr]">
         <dt className="font-mono text-xs text-neutral-500">reason</dt>

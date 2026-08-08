@@ -13,6 +13,16 @@ export interface NotationSample {
   readonly input: string;
   /** What this input is here to show. Never restates the code — the page reads that live. */
   readonly note: string;
+  /**
+   * The puzzle whose notation this is, when it is **not** cube notation.
+   *
+   * Needed because the error alone cannot say it. `parseAlgorithm` does not
+   * recognise notations; it reads valid cube moves until it meets a character it
+   * cannot, so a Clock scramble reports `not-a-move` on a `+` exactly as a typo
+   * would. Only this repo knows the input was a Clock scramble, so only this
+   * repo can tell the reader.
+   */
+  readonly puzzle?: string;
 }
 
 /** Every construct the grammar accepts, one per row. */
@@ -67,7 +77,12 @@ export const INVALID_SAMPLES: readonly NotationSample[] = [
  * into one type would be actively wrong.
  */
 export const FOREIGN_NOTATION_SAMPLES: readonly NotationSample[] = [
-  { input: 'R++ D-- U', note: 'Megaminx — Pochmann notation.' },
-  { input: 'UR2+ DR4- ALL1+ y2 U4+', note: 'Clock — pins and hours.' },
-  { input: '(-3,2)/ (3,0)/ (1,-3)', note: 'Square-1 — slice-and-turn pairs.' },
+  { input: 'R++ D-- U', note: 'Pochmann notation.', puzzle: 'Megaminx' },
+  { input: 'UR2+ DR4- ALL1+ y2 U4+', note: 'Pins and hours.', puzzle: 'Clock' },
+  { input: '(-3,2)/ (3,0)/ (1,-3)', note: 'Slice-and-turn pairs.', puzzle: 'Square-1' },
 ];
+
+/** The sample this input is, if it is one of the foreign notations above. */
+export function foreignNotationFor(input: string): NotationSample | null {
+  return FOREIGN_NOTATION_SAMPLES.find((sample) => sample.input === input.trim()) ?? null;
+}
