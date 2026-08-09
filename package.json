@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cubesmith/scrambler": "0.11.0",
+    "@cubesmith/scrambler": "0.12.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

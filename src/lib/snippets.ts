@@ -86,7 +86,7 @@ const GROUPS: readonly GroupSpec[] = [
   {
     title: 'Validating what somebody typed',
     blurb:
-      'New in 0.11.0: a non-throwing check, and errors you can classify and translate without string-matching an English sentence.',
+      'A non-throwing check (0.11.0), errors you can classify and translate without string-matching an English sentence, and since 0.12.0 the same for all seventeen events rather than the twelve written in cube notation.',
     snippets: [
       {
         title: 'Validate a text field',
@@ -95,10 +95,22 @@ const GROUPS: readonly GroupSpec[] = [
           'validateAlgorithm on every keystroke versus parseAlgorithm on a stored library — the same parser, two different situations, and the one thing validateAlgorithm refuses to swallow.',
       },
       {
+        title: 'Validate any event, not just the cube ones',
+        file: 'validating-any-event.ts',
+        description:
+          'validateScramble over all six grammars, why it takes the event rather than sniffing the string, why the valid arm hands back no tree, and how the two error classes are told apart.',
+      },
+      {
         title: 'Write the message yourself',
         file: 'syntax-messages.ts',
         description:
-          'All twenty reason codes turned into sentences, in two languages, because the package ships neither. This is the exact file the notation page renders from.',
+          'All twenty cube reason codes turned into sentences, in two languages, because the package ships neither. This is the exact file the notation page renders from.',
+      },
+      {
+        title: 'And again, for the other five notations',
+        file: 'scramble-messages.ts',
+        description:
+          'The thirteen ScrambleErrorReason codes, in the same two languages. A second table on purpose — the file opens with what that cost and what it bought.',
       },
     ],
   },

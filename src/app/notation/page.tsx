@@ -7,7 +7,7 @@ const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
 export const metadata = {
   title: 'Notation — @cubesmith/scrambler demo',
   description:
-    'Read, invert and validate WCA algorithm notation with @cubesmith/scrambler, including the stable syntax-error codes added in 0.11.0.',
+    'Read, invert and validate WCA scramble notation with @cubesmith/scrambler — all six grammars and all seventeen events, with the stable error codes added in 0.11.0 and 0.12.0.',
 };
 
 export default function NotationPage() {
@@ -27,6 +27,16 @@ export default function NotationPage() {
           <code className="font-mono text-neutral-200">validateAlgorithm</code> for the case where
           invalid input is normal rather than exceptional. Type in the field and every one of them
           runs on each keystroke.
+        </p>
+        <p className="mt-3 leading-relaxed text-neutral-400">
+          Those four are the <em>cube</em> grammar, which is twelve of the seventeen events. Since
+          0.12.0 the other five — Megaminx, Clock, Pyraminx, Skewb and Square-1 — have a public
+          check too, behind{' '}
+          <code className="font-mono text-neutral-200">validateScramble(event, text)</code>. Pick a
+          notation below and the same field answers for that grammar instead. The parsers were
+          always in the package, generating and reading its own scrambles; what they lacked until
+          0.12.0 was an offset, a span and a code, which is the difference between an error you can
+          show a user and one you can only log.
         </p>
         <p className="mt-3 leading-relaxed text-neutral-400">
           No pruning tables are involved anywhere on this page, so unlike{' '}
@@ -104,10 +114,20 @@ export default function NotationPage() {
           by code would only invite the request for the next two languages.
         </p>
         <p className="leading-relaxed text-neutral-400">
+          0.12.0 added thirteen more codes for the other five grammars — and put them in a{' '}
+          <strong className="text-neutral-200">separate</strong> union,{' '}
+          <code className="font-mono text-neutral-200">ScrambleErrorReason</code>, rather than
+          extending the cube one. That is a real trade and this repo pays both halves of it: a
+          second message table, in{' '}
+          <code className="font-mono text-neutral-200">src/examples/scramble-messages.ts</code>, and
+          a call site that has to know which of the two error classes it is holding — in exchange
+          for the cube table not breaking on upgrade, which it would have, since it is an exhaustive{' '}
+          <code className="font-mono text-neutral-200">Record</code> over every code by design.
+        </p>
+        <p className="leading-relaxed text-neutral-400">
           So the English and French wordings in the panel above are this repo&rsquo;s, not the
-          package&rsquo;s. Both live in one table in{' '}
-          <code className="font-mono text-neutral-200">src/examples/syntax-messages.ts</code>, keyed
-          by code, and the{' '}
+          package&rsquo;s. They live in two tables in{' '}
+          <code className="font-mono text-neutral-200">src/examples/</code>, keyed by code, and the{' '}
           <Link
             href="/code"
             prefetch={STATIC_EXPORT ? false : undefined}
@@ -115,7 +135,7 @@ export default function NotationPage() {
           >
             code page
           </Link>{' '}
-          prints that file verbatim. Adding a third language is one more column; adding a fourth is
+          prints both files verbatim. Adding a third language is one more column; adding a fourth is
           the same again. That is the trade the package is making on your behalf.
         </p>
       </section>

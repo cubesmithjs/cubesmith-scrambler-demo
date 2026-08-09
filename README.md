@@ -2,7 +2,7 @@
 
 A small Next.js reference app for [`@cubesmith/scrambler`](https://www.npmjs.com/package/@cubesmith/scrambler),
 the dependency-free WCA scramble generator. It exists to show you how to call the
-package — every public export of it, on 0.11.0 — not to be a cubing app: no 3D
+package — every public export of it, on 0.12.0 — not to be a cubing app: no 3D
 renderer, no timer, no history, no state library. Three pages, and you can read
 all of it in fifteen minutes.
 
@@ -36,34 +36,57 @@ to an event that does not take one, which raises `InvalidScrambleCountError`
 rather than being quietly ignored. The count help text has a link that does it on
 purpose.
 
-**`/notation` — reading it.** A live workbench over the other half:
-`parseAlgorithm` into a typed tree (rendered as a tree, so you can see that
-`[R: (U Rw U')2]` is one conjugate and not five tokens), `serializeAlgorithm` back
-out, `invertAlgorithm`, and `validateAlgorithm` on every keystroke. It carries a
-row per construct the grammar accepts, a row per way it can fail — nineteen of the
-twenty documented `reason` codes, the twentieth being a residual nothing reaches —
-and the three foreign notations it refuses on purpose.
+**`/notation` — reading it.** A live workbench with a **six-way notation
+selector**, because the package has six grammars and only one of them is cube
+notation.
 
-That page is where 0.11.0 shows up. A syntax error now carries a stable `reason`
-code, a `length` so you can underline the offending *token* rather than pointing
-at its first character, and whatever a message would interpolate (`char`,
-`family`, `outer`/`inner`, `count`). The page renders a compiler-style caret line
-from `offset` and `length`, and writes the sentence in **English or French from a
-switch you can toggle** — because the package ships no message strings beyond the
-English `.message` and never will. Both wordings live in one table in
-[`src/examples/syntax-messages.ts`](src/examples/syntax-messages.ts), which the
-page imports rather than duplicates.
+On the **Cube** tab: `parseAlgorithm` into a typed tree (rendered as a tree, so
+you can see that `[R: (U Rw U')2]` is one conjugate and not five tokens),
+`serializeAlgorithm` back out, `invertAlgorithm`, and validation on every
+keystroke — plus a row per construct the grammar accepts, a row per way it can
+fail (nineteen of the twenty `reason` codes; the twentieth is a residual nothing
+reaches), and the three foreign notations it refuses on purpose.
+
+On the other five tabs — **Megaminx, Clock, Pyraminx, Skewb, Square-1** — the same
+field answers for that grammar instead, via `validateScramble(event, text)`. Each
+carries its own accepted-forms list and its own failure table, covering twelve of
+the thirteen `ScrambleErrorReason` codes (the thirteenth is that union's
+residual). Every code, offset, span and payload in both tables is read from the
+package as the page renders; this repo stores only the input and a sentence about
+it.
+
+That page is where 0.11.0 and 0.12.0 both show up. An error carries a stable
+`reason` code, a `length` so you can underline the offending *token* rather than
+pointing at its first character, and whatever a message would interpolate. The
+page renders a compiler-style caret line from `offset` and `length` — one function
+for both error classes, since the two agree on what those mean — and writes the
+sentence in **English or French from a switch you can toggle**, because the
+package ships no message strings beyond the English `.message` and never will.
+
+There are **two** message tables, not one, and that is worth a look rather than a
+shrug: [`syntax-messages.ts`](src/examples/syntax-messages.ts) for the cube codes
+and [`scramble-messages.ts`](src/examples/scramble-messages.ts) for the other
+thirteen. The package kept `ScrambleErrorReason` as a separate union from
+`SyntaxErrorReason` on purpose, and the second file opens with what that cost this
+repo and what it bought — in short: a second table and a call site that has to
+know which class it holds, in exchange for the cube table not breaking on upgrade,
+which it would have, since it is an exhaustive `Record` over every code by design.
+
+The **Square-1** tab is the one to click carefully: its "load a real scramble"
+button generates one, which builds a pruning table (~4 s, main thread). The page
+says so before you click. Validation itself is free on every tab — parsing is the
+half of the package that has no tables.
 
 Nothing on `/notation` builds a pruning table, so it is instant everywhere and the
 server-or-browser question below does not arise for it.
 
-**`/code` — the eleven files worth copying,** grouped by job: generating,
+**`/code` — the thirteen files worth copying,** grouped by job: generating,
 reading notation, validating input, and the two primitive surfaces (`FaceMove`
 helpers, and `createRandomSource` for seeding your own draws off the same value as
 the scramble). Between them they touch every public export. They are read from the
 real files in [`src/examples/`](src/examples) at build time, so they are
 type-checked by the same `npm run build` that ships them and cannot silently rot —
-and two of them are the code `/notation` actually runs, not illustrations of it.
+and three of them are the code `/notation` actually runs, not illustrations of it.
 
 ## Server or browser?
 

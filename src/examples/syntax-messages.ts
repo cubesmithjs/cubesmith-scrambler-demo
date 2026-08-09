@@ -122,8 +122,15 @@ export function describeSyntaxError(error: AlgorithmSyntaxError, locale: Message
  * has no second layer number to underline, and `offset` is where it should have
  * been written. Render a caret there; a zero-width highlight would be invisible
  * and a one-character one would blame the wrong character.
+ *
+ * The parameter is structural rather than `AlgorithmSyntaxError`, so the same
+ * function serves `ScrambleSyntaxError` too. That is worth noticing: 0.12.0
+ * kept the two error classes deliberately apart, and the *rendering* still
+ * needs only one copy, because both classes carry `offset` and `length` with
+ * the same contract. What could not be shared is the message table — see
+ * `scramble-messages.ts` — and that is exactly the line the package drew.
  */
-export function underlineSpan(error: AlgorithmSyntaxError): {
+export function underlineSpan(error: { readonly offset: number; readonly length: number }): {
   readonly start: number;
   readonly width: number;
   readonly missing: boolean;
