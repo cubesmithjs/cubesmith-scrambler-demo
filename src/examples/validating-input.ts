@@ -5,7 +5,7 @@ import {
   type Algorithm,
 } from '@cubesmith/scrambler';
 
-import { describeSyntaxError, underlineSpan, type MessageLocale } from './syntax-messages';
+import { describeSyntaxError, underlineSpan } from './syntax-messages';
 
 // Two ways to read notation, for two different situations. Picking the wrong
 // one is the most common way to make this layer feel awkward.
@@ -30,7 +30,7 @@ export type FieldState =
       readonly missing: boolean;
     };
 
-export function checkField(input: string, locale: MessageLocale): FieldState {
+export function checkField(input: string): FieldState {
   const result = validateAlgorithm(input);
 
   // Empty input is the empty algorithm, not an error — the same answer
@@ -44,7 +44,7 @@ export function checkField(input: string, locale: MessageLocale): FieldState {
   // validated does not need parsing a second time to be used.
   return {
     status: 'invalid',
-    message: describeSyntaxError(result.error, locale),
+    message: describeSyntaxError(result.error),
     ...underlineSpan(result.error),
   };
 }

@@ -6,7 +6,7 @@ import {
 } from '@cubesmith/scrambler';
 
 import { describeScrambleError } from './scramble-messages';
-import { describeSyntaxError, underlineSpan, type MessageLocale } from './syntax-messages';
+import { describeSyntaxError, underlineSpan } from './syntax-messages';
 
 // New in 0.12.0. `validateAlgorithm` reads cube notation, which is twelve of
 // the seventeen events; the other five — Megaminx, Clock, Pyraminx, Skewb and
@@ -27,7 +27,7 @@ export function emptyIsValid(): boolean {
   return validateScramble('sq1', '').valid && validateScramble('333', '').valid;
 }
 
-/** What a form field wants back: usable, or a reason it is not, in your language. */
+/** What a form field wants back: usable, or a reason it is not, in words you wrote. */
 export type FieldState =
   | { readonly status: 'valid' }
   | {
@@ -38,11 +38,7 @@ export type FieldState =
       readonly missing: boolean;
     };
 
-export function checkScrambleField(
-  event: WcaEventId,
-  input: string,
-  locale: MessageLocale,
-): FieldState {
+export function checkScrambleField(event: WcaEventId, input: string): FieldState {
   const result = validateScramble(event, input);
 
   // The valid arm carries `notation` and nothing else — no tree, no move list.
@@ -61,8 +57,8 @@ export function checkScrambleField(
   // heard of.
   const message =
     result.notation === 'cube'
-      ? describeSyntaxError(result.error, locale)
-      : describeScrambleError(result.error, locale);
+      ? describeSyntaxError(result.error)
+      : describeScrambleError(result.error);
 
   // The caret is drawn by one function for both, though: `offset` and `length`
   // mean the same thing on both classes, and a `length` of 0 still means the

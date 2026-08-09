@@ -125,9 +125,9 @@ export default function NotationPage() {
           <code className="font-mono text-neutral-200">Record</code> over every code by design.
         </p>
         <p className="leading-relaxed text-neutral-400">
-          So the English and French wordings in the panel above are this repo&rsquo;s, not the
-          package&rsquo;s. They live in two tables in{' '}
-          <code className="font-mono text-neutral-200">src/examples/</code>, keyed by code, and the{' '}
+          So the wording in the panel above is this repo&rsquo;s, not the package&rsquo;s. It lives
+          in two tables in <code className="font-mono text-neutral-200">src/examples/</code>, keyed
+          by code, and the{' '}
           <Link
             href="/code"
             prefetch={STATIC_EXPORT ? false : undefined}
@@ -135,8 +135,11 @@ export default function NotationPage() {
           >
             code page
           </Link>{' '}
-          prints both files verbatim. Adding a third language is one more column; adding a fourth is
-          the same again. That is the trade the package is making on your behalf.
+          prints both files verbatim. This demo ships one language because one is all it needs to
+          make the point; a second is another table keyed exactly the same way, since the codes are
+          stable and that is what makes adding one uninteresting. Which languages exist, and how
+          many, is the consumer&rsquo;s business — that is the trade the package is making on your
+          behalf.
         </p>
       </section>
 

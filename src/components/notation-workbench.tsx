@@ -11,7 +11,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import { describeScrambleError, scramblePayloadOf } from '@/examples/scramble-messages';
-import { describeSyntaxError, underlineSpan, type MessageLocale } from '@/examples/syntax-messages';
+import { describeSyntaxError, underlineSpan } from '@/examples/syntax-messages';
 import {
   catalogueFor,
   foreignNotationFor,
@@ -24,8 +24,6 @@ import { loadWarningFor, NOTATION_OPTIONS, type NotationOption } from '@/lib/not
 
 import { AlgorithmTree } from './algorithm-tree';
 import { CopyButton } from './copy-button';
-
-const LOCALE_LABEL: Record<MessageLocale, string> = { en: 'English', fr: 'Français' };
 
 const CUBE_OPTION = NOTATION_OPTIONS[0]!;
 
@@ -40,7 +38,7 @@ const CUBE_OPTION = NOTATION_OPTIONS[0]!;
  * `underlineSpan` — both classes carry `offset` and `length` with the same
  * contract, so the caret is drawn once.
  */
-function present(validation: ScrambleValidation, locale: MessageLocale) {
+function present(validation: ScrambleValidation) {
   if (validation.valid) return null;
 
   if (validation.notation === 'cube') {
@@ -54,7 +52,7 @@ function present(validation: ScrambleValidation, locale: MessageLocale) {
     return {
       error,
       reason: error.reason as string,
-      sentence: describeSyntaxError(error, locale),
+      sentence: describeSyntaxError(error),
       payload: payload as readonly (readonly [string, string])[],
       className: 'AlgorithmSyntaxError',
     };
@@ -64,7 +62,7 @@ function present(validation: ScrambleValidation, locale: MessageLocale) {
   return {
     error,
     reason: error.reason as string,
-    sentence: describeScrambleError(error, locale),
+    sentence: describeScrambleError(error),
     payload: scramblePayloadOf(error),
     className: 'ScrambleSyntaxError',
   };
@@ -73,7 +71,6 @@ function present(validation: ScrambleValidation, locale: MessageLocale) {
 export function NotationWorkbench() {
   const [option, setOption] = useState<NotationOption>(CUBE_OPTION);
   const [input, setInput] = useState("R U R' U' // sexy move");
-  const [locale, setLocale] = useState<MessageLocale>('en');
   const [generating, setGenerating] = useState(false);
 
   const catalogue = catalogueFor(option.notation);
@@ -140,6 +137,35 @@ export function NotationWorkbench() {
 
   const loadWarning = loadWarningFor(option);
 
+  /**
+   * The sample the current input *is*, if it is one of the foreign scrambles,
+   * and what the **cube** parser makes of it — computed whichever tab is open,
+   * because the note is worth showing on both. On the Cube tab it explains the
+   * failure; on the puzzle's own tab it explains what you just escaped.
+   */
+  const foreignSample = foreignNotationFor(input);
+  const foreignCubeError = useMemo(() => {
+    if (!foreignSample) return null;
+    const asCube = validateAlgorithm(input);
+    return asCube.valid ? null : asCube.error;
+  }, [foreignSample, input]);
+
+  /**
+   * A foreign sample takes you to **its own grammar**, not just into the field.
+   *
+   * It used to only fill the field, which left you on the Cube tab looking at a
+   * failure — correct, and the lesson this section is for, but it reads as the
+   * button being broken. So the click now does the obvious thing, and the
+   * lesson moves into the panel: the note below still reports what the *cube*
+   * parser made of the same string, which is the part worth seeing. Nothing is
+   * lost by validating it too.
+   */
+  function pickForeignSample(sample: NotationSample) {
+    setInput(sample.input);
+    const target = NOTATION_OPTIONS.find((candidate) => candidate.notation === sample.notation);
+    if (target) setOption(target);
+  }
+
   function pickNotation(next: NotationOption) {
     setOption(next);
     // Land on something this grammar accepts. Switching to Clock and being told
@@ -193,32 +219,9 @@ export function NotationWorkbench() {
           </p>
         </fieldset>
 
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-          <label htmlFor="algorithm" className="text-sm font-medium text-neutral-300">
-            {option.label} scramble
-          </label>
-
-          <fieldset className="flex items-center gap-2">
-            <legend className="sr-only">Language of the error message</legend>
-            <span className="text-xs text-neutral-500">Message language</span>
-            {(['en', 'fr'] as const).map((candidate) => (
-              <button
-                key={candidate}
-                type="button"
-                onClick={() => setLocale(candidate)}
-                aria-pressed={locale === candidate}
-                className={[
-                  'rounded-md border px-2.5 py-1 text-xs font-medium transition',
-                  locale === candidate
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
-                    : 'border-neutral-800 text-neutral-400 hover:border-neutral-600',
-                ].join(' ')}
-              >
-                {LOCALE_LABEL[candidate]}
-              </button>
-            ))}
-          </fieldset>
-        </div>
+        <label htmlFor="algorithm" className="mt-2 text-sm font-medium text-neutral-300">
+          {option.label} scramble
+        </label>
 
         <input
           id="algorithm"
@@ -270,9 +273,21 @@ export function NotationWorkbench() {
 
       <section id="validation-result" aria-live="polite" className="flex flex-col gap-4">
         {validation.valid ? (
-          <ValidPanel option={option} derived={derived} input={input} />
+          <ValidPanel
+            option={option}
+            derived={derived}
+            input={input}
+            foreignSample={foreignSample}
+            foreignCubeError={foreignCubeError}
+          />
         ) : (
-          <ErrorPanel validation={validation} input={input} locale={locale} option={option} />
+          <ErrorPanel
+            validation={validation}
+            input={input}
+            option={option}
+            foreignSample={foreignSample}
+            foreignCubeError={foreignCubeError}
+          />
         )}
       </section>
 
@@ -295,7 +310,7 @@ export function NotationWorkbench() {
             </>
           )}
         </p>
-        <SampleList samples={validSamples} onPick={setInput} active={input} />
+        <SampleList samples={validSamples} onPick={(sample) => setInput(sample.input)} active={input} />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -343,7 +358,7 @@ export function NotationWorkbench() {
             </thead>
             <tbody>
               {failures.map(({ sample, validation: row }) => {
-                const shown = row.valid ? null : present(row, locale);
+                const shown = row.valid ? null : present(row);
                 return (
                   <tr key={sample.input} className="border-b border-neutral-800/60 last:border-b-0">
                     <td className="px-4 py-2.5 align-top">
@@ -382,13 +397,17 @@ export function NotationWorkbench() {
           </h2>
           <p className="text-sm leading-relaxed text-neutral-400">
             The five other notations are still <em>not</em> this grammar, and 0.12.0 did not change
-            that — it gave them a door of their own. Feed one of these to the cube tab and it fails;
-            switch the notation above and the same string validates. That is the whole shape of the
-            release: six grammars kept apart, one function to pick between them. A Pyraminx{' '}
+            that — it gave them a door of their own. That is the whole shape of the release: six
+            grammars kept apart, one function to pick between them. A Pyraminx{' '}
             <code className="font-mono text-neutral-200">2</code> means counterclockwise rather than
             a half turn, so one shared amount field would still be actively wrong.
           </p>
-          <SampleList samples={FOREIGN_NOTATION_SAMPLES} onPick={setInput} active={input} />
+          <p className="text-sm leading-relaxed text-neutral-400">
+            <strong className="text-neutral-200">Clicking one takes you to its own grammar</strong>,
+            where it validates — and the panel there still reports what the cube parser made of the
+            same string. Paste it back here to see the failure directly.
+          </p>
+          <SampleList samples={FOREIGN_NOTATION_SAMPLES} onPick={pickForeignSample} active={input} />
           <p className="text-xs leading-relaxed text-neutral-500">
             Each throws{' '}
             <code className="font-mono text-neutral-400">
@@ -404,9 +423,9 @@ export function NotationWorkbench() {
             valid cube moves come first and stops at the first character it cannot, so{' '}
             <code className="font-mono text-neutral-400">UR2</code> in that Clock scramble parses
             happily as <code className="font-mono text-neutral-400">U R2</code> before the{' '}
-            <code className="font-mono text-neutral-400">+</code> ends it. Click one and read the note
-            the panel adds — the error itself cannot tell a foreign notation from a typo, which is
-            exactly why the event has to come from you.
+            <code className="font-mono text-neutral-400">+</code> ends it. That is why the event has
+            to come from you: the error itself cannot tell a foreign notation from a typo, and never
+            will be able to.
           </p>
         </section>
       )}
@@ -424,6 +443,8 @@ function ValidPanel({
   option,
   derived,
   input,
+  foreignSample,
+  foreignCubeError,
 }: {
   readonly option: NotationOption;
   readonly derived: {
@@ -432,6 +453,8 @@ function ValidPanel({
     readonly inverse: string;
   } | null;
   readonly input: string;
+  readonly foreignSample: NotationSample | null;
+  readonly foreignCubeError: { readonly input: string; readonly offset: number } | null;
 }) {
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-5">
@@ -532,6 +555,14 @@ function ValidPanel({
           </p>
         </div>
       )}
+
+      {foreignSample ? (
+        <ForeignNotationNote
+          sample={foreignSample}
+          cubeError={foreignCubeError}
+          onCubeTab={option.notation === 'cube'}
+        />
+      ) : null}
     </div>
   );
 }
@@ -542,7 +573,8 @@ function SampleList({
   active,
 }: {
   readonly samples: readonly NotationSample[];
-  readonly onPick: (input: string) => void;
+  /** Takes the whole sample, not just its text: a foreign row also switches the grammar. */
+  readonly onPick: (sample: NotationSample) => void;
   readonly active: string;
 }) {
   return (
@@ -551,7 +583,7 @@ function SampleList({
         <li key={sample.input} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <button
             type="button"
-            onClick={() => onPick(sample.input)}
+            onClick={() => onPick(sample)}
             aria-pressed={sample.input === active}
             className={[
               'rounded-md border px-2.5 py-1 font-mono text-sm transition',
@@ -578,55 +610,73 @@ function SampleList({
 }
 
 /**
- * What the cube error cannot tell you: that this was never cube notation in the
- * first place.
+ * The refusal lesson, and the reason it survived a selector that makes the
+ * refusal avoidable.
  *
  * `parseAlgorithm` recognises no notation but its own. It reads valid cube moves
  * until it meets a character it cannot, so a Clock scramble comes back as
  * `not-a-move` on a `+` — the same code, and the same shape of message, as a
- * typo. Since 0.12.0 the fix is one line rather than a lecture: pass the event.
+ * typo. The error cannot say "this is Clock notation" because the error does not
+ * know; only the *event* knows, and the event has to come from the caller.
+ *
+ * Shown on both tabs, saying two different things. On the Cube tab it explains a
+ * failure you are looking at. On the puzzle's own tab it explains a failure you
+ * just avoided — which is the more useful version, because you can see both
+ * answers to the same string within one click of each other.
  */
 function ForeignNotationNote({
   sample,
-  error,
+  cubeError,
+  onCubeTab,
 }: {
   readonly sample: NotationSample;
-  readonly error: { readonly input: string; readonly offset: number };
+  /** What the cube grammar made of this string. `null` only if it somehow parsed. */
+  readonly cubeError: { readonly input: string; readonly offset: number } | null;
+  readonly onCubeTab: boolean;
 }) {
-  /** What the parser accepted as ordinary cube notation before it stopped. */
-  const consumed = error.input.slice(0, error.offset).trim();
+  /** What the cube parser accepted as ordinary notation before it stopped. */
+  const consumed = cubeError ? cubeError.input.slice(0, cubeError.offset).trim() : '';
 
   return (
     <div className="mt-4 rounded-lg border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-sm leading-relaxed text-neutral-300">
       <p>
-        <span className="font-semibold text-sky-300">This is {sample.puzzle} notation.</span> The
-        refusal is deliberate — but notice that the error does not say so, and cannot: the message
-        above is the same one a typo gets.
-      </p>
-      <p className="mt-2 text-neutral-400">
-        {consumed ? (
+        <span className="font-semibold text-sky-300">This is {sample.puzzle} notation.</span>{' '}
+        {onCubeTab ? (
           <>
-            The parser read <code className="font-mono text-neutral-200">{consumed}</code> as
-            ordinary cube notation first, and only stopped at character {error.offset}. It
-            recognises no notation but its own; it reads what it can and reports the first character
-            it cannot.
+            The refusal is deliberate — but notice that the error does not say so, and cannot: the
+            message above is the same one a typo gets.
           </>
         ) : (
           <>
-            It failed at the very first character. Nothing here was cube notation, but the error
-            still describes a character rather than a notation.
+            It validates here, and the same string on the <strong>Cube</strong> tab does not — which
+            is the whole point of passing the event rather than sniffing the characters.
           </>
-        )}{' '}
-        <span className="text-neutral-200">
-          Switch the notation above and this exact string validates
-        </span>{' '}
-        — which is the point of{' '}
-        <code className="font-mono text-neutral-200">validateScramble(event, text)</code>. The event
-        is the piece of information the string itself does not carry, and it is always something you
-        already have: <code className="font-mono text-neutral-200">result.event</code> from{' '}
-        <code className="font-mono text-neutral-200">generateScramble</code>, or the row the
-        scramble was stored against.
+        )}
       </p>
+      {cubeError ? (
+        <p className="mt-2 text-neutral-400">
+          {consumed ? (
+            <>
+              Fed to the cube grammar, the parser reads{' '}
+              <code className="font-mono text-neutral-200">{consumed}</code> as ordinary cube
+              notation first and only stops at character {cubeError.offset}. It recognises no
+              notation but its own; it reads what it can and reports the first character it cannot.
+            </>
+          ) : (
+            <>
+              Fed to the cube grammar it fails at the very first character. Nothing here was cube
+              notation, but the error still describes a character rather than a notation.
+            </>
+          )}{' '}
+          So the rule this leaves you with is about your own code:{' '}
+          <span className="text-neutral-200">
+            validate a scramble against the event it came from
+          </span>{' '}
+          — <code className="font-mono text-neutral-200">result.event</code> from{' '}
+          <code className="font-mono text-neutral-200">generateScramble</code> tells you, and so does
+          the row it was stored against.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -634,17 +684,18 @@ function ForeignNotationNote({
 function ErrorPanel({
   validation,
   input,
-  locale,
   option,
+  foreignSample,
+  foreignCubeError,
 }: {
   readonly validation: Extract<ScrambleValidation, { valid: false }>;
   readonly input: string;
-  readonly locale: MessageLocale;
   readonly option: NotationOption;
+  readonly foreignSample: NotationSample | null;
+  readonly foreignCubeError: { readonly input: string; readonly offset: number } | null;
 }) {
-  const shown = present(validation, locale)!;
+  const shown = present(validation)!;
   const span = underlineSpan(shown.error);
-  const foreign = option.notation === 'cube' ? foreignNotationFor(input) : null;
 
   return (
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-5">
@@ -682,7 +733,13 @@ function ErrorPanel({
             : `Characters ${span.start} to ${span.start + span.width - 1}.`}
       </p>
 
-      {foreign ? <ForeignNotationNote sample={foreign} error={shown.error} /> : null}
+      {foreignSample ? (
+        <ForeignNotationNote
+          sample={foreignSample}
+          cubeError={foreignCubeError}
+          onCubeTab={option.notation === 'cube'}
+        />
+      ) : null}
 
       <dl className="mt-5 grid gap-x-6 gap-y-2 border-t border-amber-500/20 pt-4 text-sm sm:grid-cols-[auto_1fr]">
         <dt className="font-mono text-xs text-neutral-500">class</dt>
@@ -723,8 +780,9 @@ function ErrorPanel({
         )}
         The package ships no message strings beyond{' '}
         <code className="font-mono text-neutral-200">.message</code> — the English one in the table,
-        which is the right thing to log and the wrong thing to show a user — and it never will.
-        Switching the language above changes nothing about what the package returned.
+        which is the right thing to log and the wrong thing to show a user — and it never will. This
+        demo writes one language because one makes the point; a second would be another table keyed
+        by the same codes, and nothing about the package would change.
       </p>
     </div>
   );

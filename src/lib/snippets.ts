@@ -104,13 +104,13 @@ const GROUPS: readonly GroupSpec[] = [
         title: 'Write the message yourself',
         file: 'syntax-messages.ts',
         description:
-          'All twenty cube reason codes turned into sentences, in two languages, because the package ships neither. This is the exact file the notation page renders from.',
+          'All twenty cube reason codes turned into sentences, because the package ships none. This is the exact file the notation page renders from — and a second language would be another table keyed identically.',
       },
       {
         title: 'And again, for the other five notations',
         file: 'scramble-messages.ts',
         description:
-          'The thirteen ScrambleErrorReason codes, in the same two languages. A second table on purpose — the file opens with what that cost and what it bought.',
+          'The thirteen ScrambleErrorReason codes, in the same shape. A second table on purpose — the file opens with what that cost and what it bought.',
       },
     ],
   },

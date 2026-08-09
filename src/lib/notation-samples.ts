@@ -1,3 +1,5 @@
+import type { Notation } from '@cubesmith/scrambler';
+
 /**
  * Inputs for the `/notation` page.
  *
@@ -23,6 +25,16 @@ export interface NotationSample {
    * repo can tell the reader.
    */
   readonly puzzle?: string;
+  /**
+   * Which grammar this sample actually belongs to, so clicking it can take the
+   * reader there.
+   *
+   * `puzzle` is a label and this is an identifier; they are separate because
+   * "Square-1" is what a person reads and `'square1'` is what the package
+   * dispatches on, and conflating them would put a display string in a
+   * discriminant.
+   */
+  readonly notation?: Notation;
 }
 
 /** Every construct the grammar accepts, one per row. */
@@ -84,9 +96,19 @@ export const INVALID_SAMPLES: readonly NotationSample[] = [
  * each of these strings instead of only somewhere it fails.
  */
 export const FOREIGN_NOTATION_SAMPLES: readonly NotationSample[] = [
-  { input: 'R++ D-- U', note: 'Pochmann notation.', puzzle: 'Megaminx' },
-  { input: 'UR2+ DR4- ALL1+ y2 U4+', note: 'Pins and hours.', puzzle: 'Clock' },
-  { input: '(-3,2)/ (3,0)/ (1,-3)', note: 'Slice-and-turn pairs.', puzzle: 'Square-1' },
+  { input: 'R++ D-- U', note: 'Pochmann notation.', puzzle: 'Megaminx', notation: 'megaminx' },
+  {
+    input: 'UR2+ DR4- ALL1+ y2 U4+',
+    note: 'Pins and hours.',
+    puzzle: 'Clock',
+    notation: 'clock',
+  },
+  {
+    input: '(-3,2)/ (3,0)/ (1,-3)',
+    note: 'Slice-and-turn pairs.',
+    puzzle: 'Square-1',
+    notation: 'square1',
+  },
 ];
 
 /** The sample this input is, if it is one of the foreign notations above. */

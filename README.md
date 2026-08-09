@@ -60,8 +60,10 @@ That page is where 0.11.0 and 0.12.0 both show up. An error carries a stable
 pointing at its first character, and whatever a message would interpolate. The
 page renders a compiler-style caret line from `offset` and `length` — one function
 for both error classes, since the two agree on what those mean — and writes the
-sentence in **English or French from a switch you can toggle**, because the
-package ships no message strings beyond the English `.message` and never will.
+sentence itself, because the package ships no message strings beyond the English
+`.message` and never will. One language ships here; a second would be another
+table keyed the same way, and the codes being stable is exactly what makes that
+uninteresting.
 
 There are **two** message tables, not one, and that is worth a look rather than a
 shrug: [`syntax-messages.ts`](src/examples/syntax-messages.ts) for the cube codes
