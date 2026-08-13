@@ -2,13 +2,14 @@
 
 A small Next.js reference app for [`@cubesmith/scrambler`](https://www.npmjs.com/package/@cubesmith/scrambler),
 the dependency-free WCA scramble generator. It exists to show you how to call the
-package — every public export of it, on 0.12.0 — not to be a cubing app: no 3D
-renderer, no timer, no history, no state library. Three pages, and you can read
-all of it in fifteen minutes.
+package — every public export of it, across both entry points, on 0.14.0 — not to
+be a cubing app: no 3D renderer, no timer, no history, no state library. Five
+pages, and you can read all of it in twenty minutes.
 
 - **Live** — https://cubesmithjs.github.io/cubesmith-scrambler-demo/ — the static
   build, so scramble generation is browser-only there; see [Deploying](#deploying)
-  for why. `/notation` is unaffected, since a parser needs no server
+  for why. `/notation` and `/draw` are unaffected, since neither a parser nor a
+  drawing needs a server
 - **Package repo** — https://github.com/cubesmithjs/cubesmith-scrambler
 - **npm** — https://www.npmjs.com/package/@cubesmith/scrambler
 
@@ -19,8 +20,23 @@ npm run dev
 
 ## What it shows
 
-The package has two halves that never touch each other, and the demo is laid out
-that way.
+The package has parts that never touch each other, and the demo is laid out that
+way — one page per part, so you can skip the ones you will not call.
+
+**`/whats-new` — everything that changed between 0.12.0 and 0.14.0,** which is
+the page to start on if you are upgrading. 0.13.0 added two public surfaces (a
+batch draw and 2D drawing) plus `prepareEvent`; 0.14.0 added no API at all and
+instead changed what two events emit. The compatibility claims on it are
+**checked in your browser as the page renders** rather than asserted: the old
+nineteen-token Clock string and the new fifteen-token one are both validated and
+both drawn, and the page compares the two serialized SVGs to show they reach the
+same state.
+
+The one thing to plan for when upgrading: seeded output for `clock`, `sq1`,
+`444` and `444bf` differs from 0.12.0, so a snapshot test or fixture file
+pinning those by seed needs re-recording. The other thirteen events emit exactly
+what they did, and nothing that *parsed* before stops parsing — the rule across
+all three changes is **emit narrow, accept wide**.
 
 **`/` — generating scrambles.** Any of the seventeen WCA events, either in a Route
 Handler or in a Client Component, timed whichever one you pick. There is a seed
@@ -35,6 +51,43 @@ demonstration of a typed failure moved to one you *can* still hit: passing `coun
 to an event that does not take one, which raises `InvalidScrambleCountError`
 rather than being quietly ignored. The count help text has a link that does it on
 purpose.
+
+Each result also reports its **length in tokens**, which is where 0.14.0 shows up
+without you going looking: a 4x4x4 that used to average 137 now averages 74.
+
+**`/batch` — drawing a whole round (0.13.0).** `generateScrambles(event, count,
+options)`, which is *not* sugar over a loop and does not pretend to be. It draws
+from **one** random source; the caller-side loop it replaces rebuilds its source
+from the seed on every call and therefore returns the same scramble N times.
+The page runs that old loop for real, next to the batch, so the bug is visible
+rather than described.
+
+There is a **checkbox that breaks the progress bar on purpose**, and it is the
+most useful control on the page. `onProgress` is awaited, which makes yielding
+*possible* and not automatic: awaiting an already-resolved promise schedules a
+microtask, and the browser paints between macrotasks. Switch the yield off and
+watch a correct-looking progress bar sit at zero until the batch finishes.
+Cancelling throws from `onProgress` — the package's entire cancel path, and why
+there is no `AbortSignal` in the signature.
+
+Also here: `prepareEvent`, with the cost it moves shown as a real measurement,
+and `cubesPerAttempt`, the second Multi-Blind axis that deliberately does not
+share a meaning — or a cap — with `count`.
+
+**`/draw` — the picture (0.13.0).** The flat sticker net that appears beside
+every scramble on an official WCA sheet, for all **seventeen** events, from the
+separate `@cubesmith/scrambler/draw` entry point. Type or paste a scramble and it
+redraws as you type, because `drawScramble` takes the scramble as **text** — so a
+stored scramble draws exactly as a generated one does, and the page needs no
+pruning table to open.
+
+The picture is React elements mapped straight off `image.shapes`, which is why
+the package returns **data** rather than an SVG string; `scrambleImageToSvg` is
+shown too, for the print route that does want the string. There is a live colour
+editor over `defaultColorScheme(event)` — note the Clock's twelve keys are not
+faces — and buttons for four of the five error classes, including the one you
+would not hit by accident: `UnsupportedScrambleError`, for notation that is
+perfectly valid and still has no picture, like a slice move or a commutator.
 
 **`/notation` — reading it.** A live workbench with a **six-way notation
 selector**, because the package has six grammars and only one of them is cube
@@ -82,13 +135,19 @@ half of the package that has no tables.
 Nothing on `/notation` builds a pruning table, so it is instant everywhere and the
 server-or-browser question below does not arise for it.
 
-**`/code` — the thirteen files worth copying,** grouped by job: generating,
-reading notation, validating input, and the two primitive surfaces (`FaceMove`
-helpers, and `createRandomSource` for seeding your own draws off the same value as
-the scramble). Between them they touch every public export. They are read from the
-real files in [`src/examples/`](src/examples) at build time, so they are
-type-checked by the same `npm run build` that ships them and cannot silently rot —
-and three of them are the code `/notation` actually runs, not illustrations of it.
+**`/code` — the nineteen files worth copying,** grouped by job: generating,
+drawing a round, drawing the picture, reading notation, validating input, and the
+two primitive surfaces (`FaceMove` helpers, and `createRandomSource` for seeding
+your own draws off the same value as the scramble). Between them they touch every
+public export of both entry points. They are read from the real files in
+[`src/examples/`](src/examples) at build time, so they are type-checked by the
+same `npm run build` that ships them and cannot silently rot — and three of them
+are the code `/notation` actually runs, not illustrations of it.
+
+The six drawing and batch files added for 0.13.0 lean on that type check harder
+than the rest: the two drawing ones import from `@cubesmith/scrambler/draw`, and
+since the main entry re-exports nothing from there, a snippet that reached for the
+short path would fail the build rather than teach the wrong import.
 
 ## Server or browser?
 
@@ -112,7 +171,7 @@ page shows you the real numbers for your own machine:
 | --- | --- | --- |
 | `333` | ~8 s | 1–300 ms |
 | `222` | ~4 s | under 1 ms |
-| `444` | ~7 s | 110 ms – 1.3 s |
+| `444` | ~15 s | 110 ms – 1.3 s |
 | `sq1` | ~4 s | 1 ms – 2 s |
 | `pyram`, `skewb` | 0.2–0.6 s | under 1 ms |
 | `333mbf` | shares `333` | 40 ms – 1 s **per cube** |
@@ -130,6 +189,20 @@ is a browser tab frozen for the better part of a minute.
 `random-moves` is not a weaker result. WCA Regulation 4b3e requires it for 5x5x5,
 6x6x6, 7x7x7 and Megaminx, so for those events a random-state scramble would be
 the non-conforming one.
+
+Since 0.13.0 you can move the "first call" column somewhere you have chosen, with
+`prepareEvent(event)`. It builds the same tables at a moment you pick — server
+boot, or behind an explicit "preparing scrambles" screen — rather than charging
+them to whoever asks first. It does not make the cost go away, and for `444` it
+does not even make the first scramble cheap: the per-group wing-pair tables and
+the centre-generator library stay lazy on purpose, because building them costs
+more than the one scramble that needs them. `sq1` leaves about 1.5 s for the same
+reason.
+
+Neither of the two pages added in 0.13.0 changes the table above. Drawing needs no
+table at all, and a batch pays each cold start exactly once and then multiplies
+only the "afterwards" column — which is what makes the browser-versus-server
+question sharper there than anywhere else in this demo.
 
 ## Deploying
 

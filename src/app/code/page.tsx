@@ -55,10 +55,14 @@ export default async function CodePage() {
           every event throws.
         </p>
         <p className="text-sm leading-relaxed text-neutral-400">
-          There is one entry point, so the notation layer ships to every consumer whether they parse
-          anything or not. It is small — the whole package is around 46 kB gzipped, of which 0.11.0
-          added under a kilobyte — but it is not conditional, and that is worth knowing before you
-          budget for it.
+          There are <strong className="text-neutral-200">two</strong> entry points as of 0.13.0. The
+          main one is about 49.6 kB gzipped and includes the notation layer whether you parse
+          anything or not — small, but not conditional, and worth knowing before you budget for it.{' '}
+          <code className="font-mono text-neutral-200">@cubesmith/scrambler/draw</code> is a further
+          23.6 kB that you pay for only by importing it; the main entry re-exports nothing from it,
+          and a test reads the built{' '}
+          <code className="font-mono text-neutral-200">dist/index.js</code> to prove that rather
+          than trusting it.
         </p>
       </section>
     </div>

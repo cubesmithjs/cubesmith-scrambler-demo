@@ -25,6 +25,21 @@ function formatMs(ms: number): string {
 }
 
 /**
+ * How many whitespace-separated tokens the scramble is.
+ *
+ * "Tokens" rather than "moves" because for five of the seventeen events they
+ * are not the same thing: a Clock token is a dial turn, a Square-1 token is a
+ * pair of layer twists. Counting them is still the useful number — it is how
+ * much a delegate has to physically apply — which is why this appears at all,
+ * and 0.14.0 is the reason it is worth showing: 4x4x4 went from a mean of 137
+ * tokens to 74, and Clock from up to 19 down to exactly 15.
+ */
+function tokenCount(scramble: string): number {
+  const trimmed = scramble.trim();
+  return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
+}
+
+/**
  * `quality` is reported by the package per event, and it is not a ranking.
  * WCA Regulation 4b3e *requires* random-moves for 5x5x5, 6x6x6, 7x7x7 and
  * Megaminx, so for those events random-moves is the conforming method and a
@@ -154,6 +169,22 @@ export function ScrambleOutput({ run }: { readonly run: Run }) {
             <dt className="text-neutral-500">table</dt>
             <dd className="text-neutral-200">
               {event.table === null ? 'none needed' : run.cold ? 'built just now' : 'already warm'}
+            </dd>
+          </div>
+          {/*
+            Present for every event, not only the two 0.14.0 shortened, because
+            a number that appears only when it flatters the package is not a
+            measurement. For a multi-scramble attempt it is the mean per cube.
+          */}
+          <div className="flex gap-1.5">
+            <dt className="text-neutral-500">length</dt>
+            <dd className="text-neutral-200">
+              {run.result.scrambles && run.result.scrambles.length > 1
+                ? `${(
+                    run.result.scrambles.reduce((total, value) => total + tokenCount(value), 0) /
+                    run.result.scrambles.length
+                  ).toFixed(1)} tokens/cube`
+                : `${tokenCount(run.result.moves)} tokens`}
             </dd>
           </div>
           {run.seed ? (

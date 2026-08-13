@@ -20,10 +20,27 @@ export default function HomePage() {
           call it.
         </p>
         <p className="mt-3 leading-relaxed text-neutral-400">
-          The other half reads notation rather than printing it: parse an algorithm into a typed
-          tree, invert it, write it back, or validate a text field on every keystroke and get a
-          stable error code you can translate yourself. That half needs no tables and has no cold
-          start, so it lives on its own page —{' '}
+          That is one page of five, because the package is not only{' '}
+          <code className="font-mono text-neutral-200">generateScramble</code>. It also draws a
+          whole round from one random source (
+          <Link
+            href="/batch"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Batches
+          </Link>
+          ), renders the 2D sticker net that goes beside a scramble on a WCA sheet (
+          <Link
+            href="/draw"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Drawing
+          </Link>
+          ), and reads notation rather than printing it — parse an algorithm into a typed tree,
+          invert it, write it back, or validate a text field on every keystroke and get a stable
+          error code you can translate yourself (
           <Link
             href="/notation"
             prefetch={STATIC_EXPORT ? false : undefined}
@@ -31,7 +48,21 @@ export default function HomePage() {
           >
             Notation
           </Link>
-          .
+          ). Those last two need no tables and have no cold start.
+        </p>
+        <p className="mt-3 leading-relaxed text-neutral-400">
+          Batches and drawing are both new since 0.12.0, and two events emit a different string than
+          they used to — including 4x4x4, whose scrambles are roughly 40% shorter, which you can see
+          in the move count under any scramble below.{' '}
+          <Link
+            href="/whats-new"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            What&rsquo;s new
+          </Link>{' '}
+          covers all of it, and checks the compatibility claims in your browser rather than
+          asserting them.
         </p>
       </section>
 
@@ -77,15 +108,33 @@ export default function HomePage() {
         </p>
 
         <p className="leading-relaxed text-neutral-400">
-          None of this applies to the notation half: a parser has no table to build, so{' '}
+          None of this applies to the two pages that read rather than generate. A parser has no
+          table to build, and neither does a drawing — it is geometry over an already-parsed move
+          list — so{' '}
           <Link
             href="/notation"
             prefetch={STATIC_EXPORT ? false : undefined}
             className="text-emerald-400 hover:text-emerald-300"
           >
-            that page
+            Notation
           </Link>{' '}
-          is fast everywhere and the server/browser question does not arise.
+          and{' '}
+          <Link
+            href="/draw"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Drawing
+          </Link>{' '}
+          are fast everywhere and the server/browser question does not arise for either.{' '}
+          <Link
+            href="/batch"
+            prefetch={STATIC_EXPORT ? false : undefined}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
+            Batches
+          </Link>{' '}
+          is where it bites hardest, because the same cold start is now multiplied by a round.
         </p>
 
         <p className="leading-relaxed text-neutral-400">

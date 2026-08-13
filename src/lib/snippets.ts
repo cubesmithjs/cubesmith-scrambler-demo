@@ -19,13 +19,19 @@ type SnippetSpec = Omit<Snippet, 'source'>;
 type GroupSpec = Omit<SnippetGroup, 'snippets'> & { readonly snippets: readonly SnippetSpec[] };
 
 /**
- * Every public export of `@cubesmith/scrambler`, grouped by the job you are
- * doing rather than by the module it lives in.
+ * Every public export of `@cubesmith/scrambler`, across both entry points,
+ * grouped by the job you are doing rather than by the module it lives in.
  *
- * The grouping is the useful part: the package has two halves that never touch
- * each other — one generates scrambles and pays for pruning tables, the other
- * reads notation and costs microseconds — plus two small primitive surfaces.
- * Reading the export list alphabetically hides that entirely.
+ * The grouping is the useful part. The package has parts that never touch each
+ * other: one generates scrambles and pays for pruning tables, one reads
+ * notation and costs microseconds, one draws a picture and is imported from a
+ * different path so you can decline it — plus two small primitive surfaces.
+ * Reading the export list alphabetically hides all of that.
+ *
+ * 🔴 The two drawing groups import from `@cubesmith/scrambler/draw`, and the
+ * import line is load-bearing rather than cosmetic: the main entry re-exports
+ * nothing from there, so a snippet that reached for the short path would not
+ * compile. Which is the point — the build is what keeps these honest.
  */
 const GROUPS: readonly GroupSpec[] = [
   {
@@ -61,6 +67,56 @@ const GROUPS: readonly GroupSpec[] = [
         file: 'catching-error.ts',
         description:
           'The typed failure you get for an event with no scrambler, and how to handle it. No event triggers it since 0.10.0 completed the set — worth keeping anyway, since the union covers events the registry may not.',
+      },
+    ],
+  },
+  {
+    title: 'Drawing a whole round',
+    blurb:
+      'Added in 0.13.0, for the job a competition actually has: not one scramble, but every group and attempt of every round — reproducible, in order, and without freezing whatever is running it.',
+    snippets: [
+      {
+        title: 'Draw a batch from one random source',
+        file: 'batch.ts',
+        description:
+          'generateScrambles and the measured bug it closes — a seeded caller-side loop returns the same scramble N times. Plus why duplicates are kept, how Multi-Blind gets two independent counts, and why the two caps are different numbers.',
+      },
+      {
+        title: 'Report progress, and cancel',
+        file: 'batch-progress.ts',
+        description:
+          'onProgress is awaited, which makes yielding possible and not automatic — the microtask-versus-macrotask distinction that decides whether a progress bar moves at all. Throwing from it is the whole cancel path, which is why there is no AbortSignal.',
+      },
+      {
+        title: 'Pay the table cost on purpose',
+        file: 'prepare-event.ts',
+        description:
+          'prepareEvent, why it is not implemented as "generate one and throw it away" (a discarded draw consumes entropy and would shift every later seeded scramble), and the one event where preparing still does not make the first scramble cheap.',
+      },
+    ],
+  },
+  {
+    title: 'Drawing the picture',
+    blurb:
+      'The 0.13.0 second entry point, @cubesmith/scrambler/draw. Imported separately because it is roughly as large as the scrambling half, and a consumer that only scrambles must not pay for it.',
+    snippets: [
+      {
+        title: 'Draw a scramble',
+        file: 'drawing.ts',
+        description:
+          'drawScramble taking the scramble as text, what a ScrambleImage actually is, why the shape array is a paint order you must not sort, and when to reach for scrambleImageToSvg instead of mapping it yourself.',
+      },
+      {
+        title: 'Change the colours',
+        file: 'drawing-colors.ts',
+        description:
+          'defaultColorScheme, partial overrides merged over the defaults — and the trap: the schemes are not interchangeable between puzzles, and using the wrong one fails silently rather than throwing.',
+      },
+      {
+        title: 'Handle every way a draw can fail',
+        file: 'drawing-errors.ts',
+        description:
+          'Three new error classes and two deliberately reused ones, plus the distinction validation cannot make for you: a slice move is valid notation and still has no picture.',
       },
     ],
   },

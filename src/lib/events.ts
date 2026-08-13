@@ -45,7 +45,11 @@ export interface WcaEvent {
 const TABLE_COLD_COST: Record<NonNullable<TableGroup>, string> = {
   '222': '~4 s',
   '333': '~8 s',
-  '444': '~7 s',
+  // Re-measured on 0.14.0 in a fresh process, where it came out at 15.1 s. The
+  // ~7 s this row used to claim was wrong rather than merely stale — it is the
+  // one figure here that a reader could have been caught out by, since 4x4x4 is
+  // also the event most likely to be generated in a browser tab by mistake.
+  '444': '~15 s',
   pyram: '~200 ms',
   skewb: '~600 ms',
   sq1: '~4 s',
@@ -64,7 +68,7 @@ const TABLE_COLD_COST: Record<NonNullable<TableGroup>, string> = {
 export const WCA_EVENTS: readonly WcaEvent[] = [
   { id: '333', name: '3x3x3', table: '333', firstCall: '~8 s', afterwards: '1-300 ms' },
   { id: '222', name: '2x2x2', table: '222', firstCall: '~4 s', afterwards: 'under 1 ms' },
-  { id: '444', name: '4x4x4', table: '444', firstCall: '~7 s', afterwards: '110 ms - 1.3 s' },
+  { id: '444', name: '4x4x4', table: '444', firstCall: '~15 s', afterwards: '110 ms - 1.3 s' },
   { id: '555', name: '5x5x5', table: null, firstCall: 'none', afterwards: 'under 1 ms' },
   { id: '666', name: '6x6x6', table: null, firstCall: 'none', afterwards: '~1 ms' },
   { id: '777', name: '7x7x7', table: null, firstCall: 'none', afterwards: 'under 1 ms' },
@@ -96,6 +100,35 @@ export function getEvent(id: WcaEventId): WcaEvent {
   const event = BY_ID.get(id);
   if (!event) throw new Error(`unknown event "${id}"`);
   return event;
+}
+
+/**
+ * A rough steady-state cost per scramble, in milliseconds, once the table is
+ * warm — keyed by table group for the same reason the cold cost is.
+ *
+ * Deliberately a single number where {@link WcaEvent.afterwards} is an honest
+ * range, and only ever used to decide whether to *warn* before a long batch.
+ * Nothing is displayed from it directly: a batch page that quoted "this will
+ * take 47 s" would be inventing a precision these randomised searches do not
+ * have. Erring high is the useful direction for a warning.
+ */
+const TABLE_STEADY_MS: Record<NonNullable<TableGroup> | 'none', number> = {
+  '222': 1,
+  '333': 300,
+  '444': 1300,
+  pyram: 1,
+  skewb: 1,
+  sq1: 2000,
+  none: 1,
+};
+
+/**
+ * Roughly what `count` scrambles of this event will cost once warm, in
+ * milliseconds. For Multi-Blind the caller must multiply by cubes per attempt
+ * themselves — this function has no way to know that axis.
+ */
+export function estimatedBatchMs(event: WcaEvent, count: number): number {
+  return TABLE_STEADY_MS[event.table ?? 'none'] * count;
 }
 
 /**

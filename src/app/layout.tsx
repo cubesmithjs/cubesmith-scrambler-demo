@@ -7,7 +7,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '@cubesmith/scrambler demo',
   description:
-    'A small Next.js reference app showing every way to call the @cubesmith/scrambler npm package — generating scrambles on the server or in the browser, and reading, inverting and validating WCA notation.',
+    'A small Next.js reference app showing every way to call the @cubesmith/scrambler npm package — generating scrambles on the server or in the browser, drawing a whole round in one batch, rendering the 2D scramble picture, and reading, inverting and validating WCA notation.',
 };
 
 const NPM_URL = 'https://www.npmjs.com/package/@cubesmith/scrambler';
@@ -36,15 +36,33 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
             >
               @cubesmith/scrambler
             </Link>
-            <nav className="flex items-center gap-5 text-sm text-neutral-400">
+            <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-neutral-400">
               <Link href="/" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Scrambles
+              </Link>
+              <Link href="/batch" prefetch={PREFETCH} className="hover:text-neutral-100">
+                Batches
+              </Link>
+              <Link href="/draw" prefetch={PREFETCH} className="hover:text-neutral-100">
+                Drawing
               </Link>
               <Link href="/notation" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Notation
               </Link>
               <Link href="/code" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Code
+              </Link>
+              {/*
+                Marked rather than just listed, because two of the five pages
+                above did not exist a version ago and a returning reader has no
+                other way to notice. Worth removing once it stops being true.
+              */}
+              <Link
+                href="/whats-new"
+                prefetch={PREFETCH}
+                className="rounded-full border border-emerald-500/40 px-2.5 py-0.5 text-emerald-400 transition hover:border-emerald-500/70 hover:text-emerald-300"
+              >
+                New in 0.14
               </Link>
               {/*
                 The two links that leave the demo open in a new tab, so a reader
