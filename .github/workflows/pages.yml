@@ -5,11 +5,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# The default GITHUB_TOKEN is read-only; publishing to Pages needs these.
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# Least privilege (security_audit_plan F-12): nothing by default, and each job
+# declares what it needs. The build job runs `npm ci` and the whole build —
+# every install script of every dependency — so it must not hold the Pages
+# write or OIDC permissions; only the deploy job, which runs one GitHub action
+# and no third-party code, gets those.
+permissions: {}
 
 # Let an in-flight deploy finish rather than cancelling it half-published.
 concurrency:
@@ -19,10 +20,18 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # configure-pages reads the site's settings (`GET /repos/.../pages`).
+      pages: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # `persist-credentials: false` keeps GITHUB_TOKEN out of the checkout, where
+      # every install script `npm ci` runs could otherwise read it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -47,18 +56,25 @@ jobs:
       - name: Disable Jekyll
         run: touch out/.nojekyll
 
-      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      # 🔴 `include-hidden-files` is load-bearing: since v4 this action drops
+      # dotfiles from the artifact by default, which would silently remove the
+      # `.nojekyll` written above.
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: out
+          include-hidden-files: true
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
