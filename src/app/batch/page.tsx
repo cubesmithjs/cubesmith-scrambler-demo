@@ -113,16 +113,19 @@ export default function BatchPage() {
           🔴 It is <strong className="text-neutral-200">not</strong> implemented as &ldquo;generate
           a scramble and throw it away&rdquo;. A discarded draw consumes entropy, which would shift
           every later scramble under a seed and turn a performance helper into a correctness
-          hazard. A test in the package asserts that a seeded batch is byte-identical with and
-          without a preceding <code className="font-mono text-neutral-200">prepareEvent</code>.
+          hazard. The package tests that a seeded batch is byte-identical with and without a
+          preceding <code className="font-mono text-neutral-200">prepareEvent</code>, and the last
+          panel on the workbench above runs that comparison for real, in two fresh Workers.
         </p>
         <p className="leading-relaxed text-neutral-400">
-          One honest caveat the package states rather than glosses: 4x4x4 is the event where
-          preparing does <em>not</em> make the first scramble as fast as the tenth. Two things stay
-          lazy deliberately — the per-group wing-pair tables, which cost about 8.5 s that one
-          scramble does not need, and the centre-generator library, which is a search rather than a
-          table and costs more to pre-build than a first scramble does. Square-1 leaves about 1.5 s
-          for the same reason.
+          One honest caveat: Square-1 is the event where preparing does <em>not</em> make the first
+          scramble as fast as the tenth. Measured in fresh processes on 0.14.1, preparing takes about
+          3.2 s of its ~4 s cold start, and the first scramble after it still costs about 1.5 s
+          against a warm median near 100 ms. Every other table is fully covered — 4x4x4 included,
+          since 0.14.0 moved its compiled pairing library into{' '}
+          <code className="font-mono text-neutral-200">prepareEvent</code>; on 0.13.0 its first
+          scramble after preparing still cost 4.5 s. The badge beside the button says which kind
+          the selected event is.
         </p>
       </section>
 

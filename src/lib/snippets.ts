@@ -154,7 +154,7 @@ const GROUPS: readonly GroupSpec[] = [
         title: 'Validate any event, not just the cube ones',
         file: 'validating-any-event.ts',
         description:
-          'validateScramble over all six grammars, why it takes the event rather than sniffing the string, why the valid arm hands back no tree, and how the two error classes are told apart.',
+          'validateScramble over all six grammars, why it takes the event rather than sniffing the string, notationForEvent for knowing the grammar before there is a string, why the valid arm hands back no tree, and how the two error classes are told apart.',
       },
       {
         title: 'Write the message yourself',

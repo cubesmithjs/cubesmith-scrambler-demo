@@ -24,6 +24,8 @@ export interface NotationOption {
   readonly covers: string;
   /** What is worth knowing about the grammar itself, in one line. */
   readonly blurb: string;
+  /** Anything about what the package *emits* in this grammar that differs from what it accepts. */
+  readonly note?: string;
 }
 
 export const NOTATION_OPTIONS: readonly NotationOption[] = [
@@ -77,6 +79,9 @@ export const NOTATION_OPTIONS: readonly NotationOption[] = [
     covers: 'sq1',
     blurb:
       'Pairs of 30° layer turns and a / slice. Tolerant about spacing and about which representative a value uses.',
+    // The one tab on the site that is about acceptance, so this is where the
+    // difference between the two sets belongs. /whats-new runs the spellings.
+    note: 'What it emits and what it accepts are different on purpose. Since 0.13.0 a generated scramble is printed (-3,-4), with no space after the comma — TNoodle’s spelling. The parser still takes (-3, -4) and every other spacing, because a scramble already stored in somebody’s database was written the old way and must stay valid.',
   },
 ];
 

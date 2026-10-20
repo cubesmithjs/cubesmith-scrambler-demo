@@ -79,7 +79,11 @@ export const WCA_EVENTS: readonly WcaEvent[] = [
   { id: 'minx', name: 'Megaminx', table: null, firstCall: 'none', afterwards: 'under 1 ms' },
   { id: 'pyram', name: 'Pyraminx', table: 'pyram', firstCall: '~200 ms', afterwards: 'under 1 ms' },
   { id: 'skewb', name: 'Skewb', table: 'skewb', firstCall: '~600 ms', afterwards: 'under 1 ms' },
-  { id: 'sq1', name: 'Square-1', table: 'sq1', firstCall: '~4 s', afterwards: '1 ms - 2 s' },
+  // The widest tail in the table. 80 warm draws in one process, 2026-10-21:
+  // p50 116 ms, p90 1.6 s, p95 4.2 s, max 9.0 s — seven of the eighty over 2 s.
+  // This row used to say "1 ms - 2 s", which was true of the median and wrong
+  // about roughly one draw in ten.
+  { id: 'sq1', name: 'Square-1', table: 'sq1', firstCall: '~4 s', afterwards: '1 ms - 9 s' },
   { id: '444bf', name: '4x4x4 Blindfolded', table: '444', firstCall: 'shares 4x4x4', afterwards: '400 ms - 1 s' },
   { id: '555bf', name: '5x5x5 Blindfolded', table: null, firstCall: 'none', afterwards: 'under 1 ms' },
   // One attempt over many cubes, each cube a full random-state 3x3x3 solve, so
@@ -141,6 +145,46 @@ export function estimatedBatchMs(event: WcaEvent, count: number): number {
  */
 export function coldCost(event: WcaEvent): string | null {
   return event.table === null ? null : TABLE_COLD_COST[event.table];
+}
+
+/**
+ * How much of the cold start `prepareEvent(event)` takes off the first scramble.
+ *
+ * - `full` — the first scramble after preparing costs what the tenth does;
+ * - `partial` — preparing builds most of it, and `leftover` still lands on the
+ *   first scramble;
+ * - `none` — the event builds no table, so `prepareEvent` resolves at once.
+ *   That is the answer, not an error.
+ *
+ * Keyed by table rather than stored per event, like the cold cost above: it is
+ * a property of what the table build leaves out, so the five events sharing a
+ * table cannot disagree about it.
+ */
+export type Preparation =
+  | { readonly kind: 'full' }
+  | { readonly kind: 'partial'; readonly leftover: string }
+  | { readonly kind: 'none' };
+
+/**
+ * Measured 2026-10-21 on 0.14.1, Node 22.14.0, each reading in its own fresh
+ * process: `prepareEvent`, then one timed scramble, then the tenth.
+ *
+ * 🔴 Square-1 is the only partial table left. Five runs put its first scramble
+ * after `prepareEvent` at 1.33-1.73 s (one outlier at 6.4 s) against a warm
+ * median of about 100 ms, while preparing itself took ~3.2 s of a ~3.8 s cold
+ * start. 4x4x4 used to be the other one — on 0.13.0 the first scramble after
+ * preparing still cost 4.5 s — until 0.14.0 moved the compiled pairing library
+ * into `prepareEvent`; it now measures 504 ms after a 14.4 s prepare, the same as
+ * a warm draw.
+ */
+const TABLE_LEFTOVER: Partial<Record<NonNullable<TableGroup>, string>> = {
+  sq1: '~1.5 s',
+};
+
+export function preparationOf(event: WcaEvent): Preparation {
+  if (event.table === null) return { kind: 'none' };
+  const leftover = TABLE_LEFTOVER[event.table];
+  return leftover ? { kind: 'partial', leftover } : { kind: 'full' };
 }
 
 /** Narrows an arbitrary string from a query param or form field to a `WcaEventId`. */

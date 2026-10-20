@@ -5,6 +5,7 @@ import { drawScramble, scrambleImageToSvg } from '@cubesmith/scrambler/draw';
 import { useMemo, useState } from 'react';
 
 import { LEGACY_CLOCK_SCRAMBLE, MODERN_CLOCK_SCRAMBLE } from '@/lib/draw-samples';
+import { recordGenerated } from '@/lib/table-state';
 
 import { ScrambleDrawing } from './scramble-drawing';
 
@@ -235,7 +236,9 @@ function FourByFourPanel() {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const startedAt = performance.now();
       const result = await generateScramble('444');
-      setElapsedMs(performance.now() - startedAt);
+      const elapsed = performance.now() - startedAt;
+      recordGenerated('444', elapsed);
+      setElapsedMs(elapsed);
       setLengths((previous) => [...previous, result.moves.trim().split(/\s+/).length]);
     } finally {
       setBusy(false);

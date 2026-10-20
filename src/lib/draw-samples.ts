@@ -7,7 +7,7 @@ import type { WcaEventId } from '@cubesmith/scrambler';
  * These are **stored strings, not generated on load**, and that is the point
  * rather than a shortcut. `drawScramble` takes a scramble as *text* — TNoodle's
  * own signature — so drawing needs no scrambler, no pruning table and no cold
- * start. A page that opened by generating a 4x4x4 would freeze for seven seconds
+ * start. A page that opened by generating a 4x4x4 would freeze for fifteen seconds
  * to prove the opposite of what this page is about.
  *
  * Each one was produced by `generateScramble(event, { seed })` at the version
@@ -36,7 +36,14 @@ export const DRAW_SAMPLES: Readonly<Record<WcaEventId, string>> = {
   '333fm':
     "R' U' F U2 B2 U L2 B2 F2 U' F2 R2 U' B2 D L2 D F' R2 L D' R' F U2 L2 D' U' R' U' F",
   '333oh': "U2 B2 U L2 B2 F2 U' F2 R2 U' B2 D L2 D F' R2 L D' R' F U2 L2 D' U'",
-  '333mbf': "U2 B2 U L2 B2 F2 U' F2 R2 U' B2 D L2 D F' R2 L D' R' F U2 L2 D' U' Fw2",
+  // One cube per line, three cubes: `generateScramble('333mbf', { count: 3,
+  // seed: 'draw-sample' }).scrambles` on 0.14.1, joined with newlines. The page
+  // draws each line as its own cube — see `MULTI_BLIND` in draw-workbench.tsx.
+  '333mbf': [
+    "R2 D F2 R2 U2 F2 D R2 F2 U' F2 D R2 F2 U2 B' D2 L' F R' B' R D' U2 L2 Uw",
+    "B2 R2 D F2 U B2 U L2 B2 F2 D2 R2 U' B2 L' B F2 D2 U F2 R B' R' U' Uw2 Lw",
+    "F2 L2 D F2 R2 D B2 U F2 D2 R2 D' F2 L2 F' L' D U' B' D2 F R' U' F Uw Lw2",
+  ].join('\n'),
   '444bf':
     "F2 D U2 B2 R2 F2 R2 U' L2 F2 U' B2 L2 U' R' D B' F' L' F L U B U Uw' R' U R L D L' Uw Lw F R' L' F' Lw' Uw2 U2 B U2 B' Uw2 Fw2 D Rw2 R' U Fw2 L F' D' Bw' Dw L D' Fw U' Lw F' Uw2 x2 y",
   '555bf':

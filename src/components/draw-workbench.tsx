@@ -8,6 +8,7 @@ import {
 } from '@cubesmith/scrambler';
 import {
   defaultColorScheme,
+  drawableEvents,
   drawScramble,
   InvalidColorError,
   scrambleImageToSvg,
@@ -20,6 +21,7 @@ import { useMemo, useState } from 'react';
 
 import { coldCost, getEvent } from '@/lib/events';
 import { DRAW_SAMPLES } from '@/lib/draw-samples';
+import { recordGenerated } from '@/lib/table-state';
 
 import { CopyButton } from './copy-button';
 import { EventPicker } from './event-picker';
@@ -84,8 +86,41 @@ function classify(error: unknown): DrawFailure {
 }
 
 type DrawState =
-  | { readonly ok: true; readonly image: ScrambleImage }
-  | { readonly ok: false; readonly failure: DrawFailure };
+  | { readonly ok: true; readonly images: readonly ScrambleImage[] }
+  | {
+      readonly ok: false;
+      readonly failure: DrawFailure;
+      /** Which Multi-Blind cube failed, counting from 1, or `null` for a single-scramble event. */
+      readonly cube: number | null;
+    };
+
+/**
+ * The events this page offers: the drawing entry's own list, not a second copy
+ * of it. All seventeen are drawable as of 0.13.0, which is worth one sentence on
+ * the page rather than a hidden branch — and if a future event arrives with a
+ * scrambler and no drawer yet, this picker leaves it out with no code change.
+ */
+const DRAWABLE = drawableEvents();
+
+/**
+ * 🔴 The one event whose scramble is several scrambles. `drawScramble` draws
+ * **one cube**, so the page calls it once per line. Handing it every line at once
+ * is not an error — the parser reads the lines as one long move sequence and
+ * returns one cube with every scramble applied in turn: 54 stickers, plausible,
+ * and a picture of no cube anyone will hold.
+ */
+const MULTI_BLIND: WcaEventId = '333mbf';
+/** How many cubes "Generate a fresh one" draws for Multi-Blind — as many as the sample has. */
+const MULTI_BLIND_FRESH_CUBES = 3;
+
+function cubeLines(scramble: string): readonly string[] {
+  const lines = scramble
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  // An empty field still draws: one solved cube, as it does for every event.
+  return lines.length > 0 ? lines : [''];
+}
 
 /**
  * Cube notation the parser accepts and a drawing cannot apply, one example per
@@ -108,6 +143,7 @@ export function DrawWorkbench() {
 
   const defaults = useMemo(() => defaultColorScheme(event), [event]);
   const selected = getEvent(event);
+  const multi = event === MULTI_BLIND;
 
   /**
    * Drawing is cheap enough to redo on every keystroke — it is geometry over a
@@ -116,12 +152,30 @@ export function DrawWorkbench() {
    * is for.
    */
   const state: DrawState = useMemo(() => {
-    try {
-      return { ok: true, image: drawScramble(event, scramble, overrides) };
-    } catch (error) {
-      return { ok: false, failure: classify(error) };
+    const lines = multi ? cubeLines(scramble) : [scramble];
+    const images: ScrambleImage[] = [];
+    for (const [index, line] of lines.entries()) {
+      try {
+        images.push(drawScramble(event, line, overrides));
+      } catch (error) {
+        return { ok: false, failure: classify(error), cube: multi ? index + 1 : null };
+      }
     }
-  }, [event, scramble, overrides]);
+    return { ok: true, images };
+  }, [event, multi, scramble, overrides]);
+
+  /**
+   * What the whole field draws as ONE call, for Multi-Blind with more than one
+   * cube — the mistake made visible rather than described. `null` otherwise.
+   */
+  const joined: ScrambleImage | null = useMemo(() => {
+    if (!multi || !state.ok || state.images.length < 2) return null;
+    try {
+      return drawScramble(event, scramble, overrides);
+    } catch {
+      return null;
+    }
+  }, [multi, state, event, scramble, overrides]);
 
   function chooseEvent(next: WcaEventId) {
     setEvent(next);
@@ -138,24 +192,35 @@ export function DrawWorkbench() {
     try {
       // Two frames, so the disabled state paints before the main thread blocks.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const result = await generateScramble(event);
-      setScramble(result.moves);
+      const startedAt = performance.now();
+      const result = await generateScramble(
+        event,
+        multi ? { count: MULTI_BLIND_FRESH_CUBES } : {},
+      );
+      recordGenerated(event, multi ? null : performance.now() - startedAt);
+      setScramble((result.scrambles ?? [result.moves]).join('\n'));
     } finally {
       setGenerating(false);
     }
   }
 
-  const svg = state.ok ? scrambleImageToSvg(state.image) : null;
+  const firstImage = state.ok ? state.images[0] : undefined;
+  const svg = firstImage ? scrambleImageToSvg(firstImage) : null;
   const overriddenKeys = Object.keys(overrides).filter((key) => overrides[key] !== undefined);
 
   return (
     <div className="flex flex-col gap-6">
-      <EventPicker value={event} onChange={chooseEvent} disabled={generating} />
+      <EventPicker value={event} onChange={chooseEvent} disabled={generating} events={DRAWABLE} />
+      <p className="-mt-3 text-sm text-neutral-500">
+        These tiles are <code className="font-mono text-neutral-300">drawableEvents()</code> —{' '}
+        {DRAWABLE.length} of them, every event the package can scramble.
+      </p>
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <label htmlFor="draw-scramble" className="text-sm font-medium text-neutral-400">
-            Scramble <span className="text-neutral-600">(drawn as you type)</span>
+            {multi ? 'Scrambles, one cube per line' : 'Scramble'}{' '}
+            <span className="text-neutral-600">(drawn as you type)</span>
           </label>
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <button
@@ -181,7 +246,7 @@ export function DrawWorkbench() {
           value={scramble}
           onChange={(changeEvent) => setScramble(changeEvent.target.value)}
           spellCheck={false}
-          rows={3}
+          rows={multi ? 4 : 3}
           className="w-full resize-y rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 font-mono text-sm leading-relaxed text-neutral-100 focus:border-emerald-500 focus:outline-none"
         />
 
@@ -202,33 +267,88 @@ export function DrawWorkbench() {
         </p>
       </div>
 
-      {state.ok ? (
+      {state.ok && firstImage ? (
         <>
-          <figure className="flex flex-col items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-6">
-            <ScrambleDrawing
-              image={state.image}
-              title={`${selected.name} scramble drawing`}
-              className="max-h-80 w-full max-w-md"
-            />
-            <figcaption className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-neutral-500">
-              <span>
-                <span className="text-neutral-400">{state.image.shapes.length}</span> shapes
-              </span>
-              <span>
-                intrinsic{' '}
-                <span className="text-neutral-400">
-                  {state.image.width}&times;{state.image.height}
+          {state.images.length === 1 ? (
+            <figure className="flex flex-col items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-6">
+              <ScrambleDrawing
+                image={firstImage}
+                title={`${selected.name} scramble drawing`}
+                className="max-h-80 w-full max-w-md"
+              />
+              <figcaption className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-neutral-500">
+                <span>
+                  <span className="text-neutral-400">{firstImage.shapes.length}</span> shapes
                 </span>
-              </span>
-              <span>
-                stroke <span className="text-neutral-400">{state.image.strokeWidth}</span>
-              </span>
-              <span className="font-mono text-neutral-600">{state.image.event}</span>
-            </figcaption>
-          </figure>
+                <span>
+                  intrinsic{' '}
+                  <span className="text-neutral-400">
+                    {firstImage.width}&times;{firstImage.height}
+                  </span>
+                </span>
+                <span>
+                  stroke <span className="text-neutral-400">{firstImage.strokeWidth}</span>
+                </span>
+                <span className="font-mono text-neutral-600">{firstImage.event}</span>
+              </figcaption>
+            </figure>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="multi-blind-cubes">
+              {state.images.map((image, index) => (
+                <figure
+                  key={index}
+                  className="flex flex-col items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4"
+                >
+                  <ScrambleDrawing
+                    image={image}
+                    title={`Multi-Blind cube ${index + 1} scramble drawing`}
+                    className="max-h-56 w-full"
+                  />
+                  <figcaption className="text-sm text-neutral-500">
+                    Cube <span className="text-neutral-300">{index + 1}</span> ·{' '}
+                    {image.shapes.length} shapes
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+
+          {multi ? (
+            <section className="-mt-2 flex flex-col gap-3 rounded-xl border border-neutral-800 p-5 sm:flex-row sm:items-center">
+              <div className="flex-1 text-sm leading-relaxed text-neutral-400">
+                <p>
+                  One picture per cube, because{' '}
+                  <code className="font-mono text-neutral-300">drawScramble</code> draws one cube:
+                  the page calls it once per line, the way you would call it once per entry of{' '}
+                  <code className="font-mono text-neutral-300">result.scrambles</code>.
+                </p>
+                {joined ? (
+                  <p className="mt-2">
+                    🔴 Handing it all {state.images.length} lines at once is <em>not</em> an error.
+                    The parser reads them as one long move sequence and returns a single cube with
+                    every scramble applied in turn — the picture on the right, {joined.shapes.length}{' '}
+                    shapes, perfectly plausible, and a cube nobody will be handed.
+                  </p>
+                ) : null}
+              </div>
+              {joined ? (
+                <figure className="flex flex-col items-center gap-2 sm:w-48">
+                  <ScrambleDrawing
+                    image={joined}
+                    title="All lines drawn as one call"
+                    className="max-h-40 w-full opacity-80"
+                  />
+                  <figcaption className="text-center text-xs text-amber-300/80">
+                    drawScramble(&apos;333mbf&apos;, all {state.images.length} lines)
+                  </figcaption>
+                </figure>
+              ) : null}
+            </section>
+          ) : null}
 
           <p className="-mt-2 text-sm leading-relaxed text-neutral-500">
-            Those {state.image.shapes.length} shapes are what{' '}
+            Those {firstImage.shapes.length} shapes{multi && state.images.length > 1 ? ' per cube' : ''}{' '}
+            are what{' '}
             <code className="font-mono text-neutral-300">drawScramble</code> returned — an array of
             rectangles, polygons, circles and paths in paint order, not markup. The picture above is
             React elements mapped straight off it, so every sticker keeps its own key and could
@@ -236,10 +356,14 @@ export function DrawWorkbench() {
             An SVG string could not.
           </p>
         </>
-      ) : (
+      ) : null}
+
+      {!state.ok ? (
         <section className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-5">
           <div className="flex flex-wrap items-center gap-3">
-            <h3 className="text-lg font-semibold text-amber-200">No picture</h3>
+            <h3 className="text-lg font-semibold text-amber-200">
+              {state.cube !== null ? `No picture for cube ${state.cube}` : 'No picture'}
+            </h3>
             <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 font-mono text-xs text-amber-300">
               {state.failure.className}
             </span>
@@ -249,7 +373,7 @@ export function DrawWorkbench() {
           </p>
           <p className="mt-4 text-sm leading-relaxed text-neutral-400">{state.failure.note}</p>
         </section>
-      )}
+      ) : null}
 
       <section className="flex flex-col gap-3 rounded-xl border border-neutral-800 p-5">
         <h3 className="font-semibold text-neutral-200">Colours</h3>
@@ -356,6 +480,11 @@ export function DrawWorkbench() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-semibold text-neutral-200">
               <code className="font-mono text-sm">scrambleImageToSvg(image)</code>
+              {state.ok && state.images.length > 1 ? (
+                <span className="ml-2 text-sm font-normal text-neutral-500">
+                  cube 1 of {state.images.length}
+                </span>
+              ) : null}
             </h3>
             <div className="flex items-center gap-4">
               <button

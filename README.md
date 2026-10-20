@@ -72,14 +72,25 @@ there is no `AbortSignal` in the signature.
 
 Also here: `prepareEvent`, with the cost it moves shown as a real measurement,
 and `cubesPerAttempt`, the second Multi-Blind axis that deliberately does not
-share a meaning — or a cap — with `count`.
+share a meaning — or a cap — with `count`. The last panel runs **the same seeded
+batch twice**, once cold and once after `prepareEvent`, and compares the strings:
+`prepareEvent` is not "generate one and throw it away", because a discarded draw
+would shift every later seeded scramble. Each side runs in its own fresh Web
+Worker — a Worker loads its own copy of the package, which is the only way to
+start cold twice in a tab that may already have built the table.
 
 **`/draw` — the picture (0.13.0).** The flat sticker net that appears beside
 every scramble on an official WCA sheet, for all **seventeen** events, from the
 separate `@cubesmith/scrambler/draw` entry point. Type or paste a scramble and it
 redraws as you type, because `drawScramble` takes the scramble as **text** — so a
 stored scramble draws exactly as a generated one does, and the page needs no
-pruning table to open.
+pruning table to open. The tiles are `drawableEvents()`, not a list kept here.
+
+Multi-Blind takes **one cube per line** and draws one picture per cube, because
+`drawScramble` draws a single cube — call it once per entry of
+`result.scrambles`. The page also draws what happens if you hand it every line
+at once: not an error, but one cube with every scramble applied in turn, which
+is a plausible picture of a cube nobody will be handed.
 
 The picture is React elements mapped straight off `image.shapes`, which is why
 the package returns **data** rather than an SVG string; `scrambleImageToSvg` is
@@ -129,8 +140,13 @@ which it would have, since it is an exhaustive `Record` over every code by desig
 
 The **Square-1** tab is the one to click carefully: its "load a real scramble"
 button generates one, which builds a pruning table (~4 s, main thread). The page
-says so before you click. Validation itself is free on every tab — parsing is the
-half of the package that has no tables.
+says so before you click, and offers `prepareEvent('sq1')` first, so the build
+lands on a press you chose. It is also where the tab says that what the package
+*emits* and what it *accepts* differ on purpose: since 0.13.0 a generated
+Square-1 scramble is printed `(-3,-4)`, and the parser still takes `(-3, -4)` and
+every other spacing, because stored scramble data was written the old way.
+Validation itself is free on every tab — parsing is the half of the package that
+has no tables.
 
 Nothing on `/notation` builds a pruning table, so it is instant everywhere and the
 server-or-browser question below does not arise for it.
@@ -148,6 +164,19 @@ The six drawing and batch files added for 0.13.0 lean on that type check harder
 than the rest: the two drawing ones import from `@cubesmith/scrambler/draw`, and
 since the main entry re-exports nothing from there, a snippet that reached for the
 short path would fail the build rather than teach the wrong import.
+
+That separation is what you pay for in bytes. Measured off the published
+`0.14.1` tarball:
+
+| Entry point | Raw | gzip | brotli |
+| --- | --- | --- | --- |
+| `@cubesmith/scrambler` (`dist/index.js`) | 228.6 KiB | 49.9 KiB | 41.4 KiB |
+| `@cubesmith/scrambler/draw` (`dist/draw/index.js`) | 94.9 KiB | 23.0 KiB | 20.0 KiB |
+
+The drawing entry imports nothing from the main one, so a page that only draws
+does not carry the scrambler, and a page that only scrambles does not carry the
+drawing code. In this demo's static build `/` and `/notation` load no drawing
+code at all; `/draw` and `/whats-new` are the two pages that do.
 
 ## Server or browser?
 
@@ -172,13 +201,15 @@ page shows you the real numbers for your own machine:
 | `333` | ~8 s | 1–300 ms |
 | `222` | ~4 s | under 1 ms |
 | `444` | ~15 s | 110 ms – 1.3 s |
-| `sq1` | ~4 s | 1 ms – 2 s |
+| `sq1` | ~4 s | 1 ms – 9 s (median ~100 ms) |
 | `pyram`, `skewb` | 0.2–0.6 s | under 1 ms |
 | `333mbf` | shares `333` | 40 ms – 1 s **per cube** |
 | `clock`, `555`, `666`, `777`, `minx` | no table | under 1 ms |
 
 Steady-state cost is a range rather than an average because these are randomised
-searches. Events also *share* tables: once a `333` is warm, `333bf`, `333fm`,
+searches. Square-1 has the widest tail by far: over 80 warm draws the median was
+116 ms, but one in ten took longer than 1.6 s and the slowest took 9 s. Events
+also *share* tables: once a `333` is warm, `333bf`, `333fm`,
 `333oh` and `333mbf` are warm too.
 
 `333mbf` is the one row measured **per cube**, because one Multi-Blind attempt
@@ -193,11 +224,18 @@ the non-conforming one.
 Since 0.13.0 you can move the "first call" column somewhere you have chosen, with
 `prepareEvent(event)`. It builds the same tables at a moment you pick — server
 boot, or behind an explicit "preparing scrambles" screen — rather than charging
-them to whoever asks first. It does not make the cost go away, and for `444` it
-does not even make the first scramble cheap: the per-group wing-pair tables and
-the centre-generator library stay lazy on purpose, because building them costs
-more than the one scramble that needs them. `sq1` leaves about 1.5 s for the same
-reason.
+them to whoever asks first. It does not make the cost go away — it is the same
+synchronous build, and in a browser the tab still freezes while it runs — it
+moves it. `/`, `/notation` and `/batch` all have the button, and they share what
+it built, because the package keeps its tables for the life of the tab.
+
+For every table but one, preparing makes the first scramble cost what the tenth
+does. The exception is `sq1`: preparing takes about 3.2 s of its ~4 s cold start,
+and the first scramble after it still costs about 1.5 s against a warm median
+near 100 ms. `444` used to be the other exception — on 0.13.0 its first scramble
+after preparing still cost 4.5 s — until 0.14.0 moved the compiled pairing
+library into `prepareEvent`; it now measures 504 ms after a 14.4 s prepare.
+(Fresh-process readings on 0.14.1, Node 22.)
 
 Neither of the two pages added in 0.13.0 changes the table above. Drawing needs no
 table at all, and a batch pays each cold start exactly once and then multiplies

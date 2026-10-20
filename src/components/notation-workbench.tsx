@@ -20,10 +20,13 @@ import {
   VALID_SAMPLES,
   type NotationSample,
 } from '@/lib/notation-samples';
+import { getEvent } from '@/lib/events';
 import { loadWarningFor, NOTATION_OPTIONS, type NotationOption } from '@/lib/notations';
+import { recordGenerated, useTableState } from '@/lib/table-state';
 
 import { AlgorithmTree } from './algorithm-tree';
 import { CopyButton } from './copy-button';
+import { WarmUpControl } from './warm-up-control';
 
 const CUBE_OPTION = NOTATION_OPTIONS[0]!;
 
@@ -72,6 +75,9 @@ export function NotationWorkbench() {
   const [option, setOption] = useState<NotationOption>(CUBE_OPTION);
   const [input, setInput] = useState("R U R' U' // sexy move");
   const [generating, setGenerating] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const tableState = useTableState(option.event);
+  const hasTable = getEvent(option.event).table !== null;
 
   const catalogue = catalogueFor(option.notation);
 
@@ -177,7 +183,9 @@ export function NotationWorkbench() {
   async function loadScramble() {
     setGenerating(true);
     try {
+      const startedAt = performance.now();
       const result = await generateScramble(option.event);
+      recordGenerated(option.event, performance.now() - startedAt);
       setInput(result.moves);
     } finally {
       setGenerating(false);
@@ -217,6 +225,9 @@ export function NotationWorkbench() {
               — {option.covers}.
             </span>
           </p>
+          {option.note ? (
+            <p className="text-sm leading-relaxed text-neutral-400">{option.note}</p>
+          ) : null}
         </fieldset>
 
         <label htmlFor="algorithm" className="mt-2 text-sm font-medium text-neutral-300">
@@ -240,11 +251,24 @@ export function NotationWorkbench() {
           ].join(' ')}
         />
 
+        {/*
+          Before the generate button, not after it: the point is that the cold
+          build can be paid on a press the visitor chose, ahead of the click that
+          would otherwise pay it.
+        */}
+        {hasTable ? (
+          <WarmUpControl
+            event={option.event}
+            disabled={generating}
+            onBusyChange={setPreparing}
+          />
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <button
             type="button"
             onClick={loadScramble}
-            disabled={generating}
+            disabled={generating || preparing}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 font-medium text-neutral-300 transition hover:border-neutral-500 hover:text-white disabled:opacity-50"
           >
             {generating ? 'Generating…' : `Load a real ${option.label} scramble`}
@@ -256,11 +280,16 @@ export function NotationWorkbench() {
           >
             Clear
           </button>
-          {loadWarning ? (
+          {loadWarning && tableState.kind === 'cold' ? (
             <p className="text-amber-300/80">
               Heads up: <code className="font-mono">{option.event}</code> {loadWarning}, on the main
               thread, in this tab. Validation itself costs nothing — this is the *other* half of the
               package.
+            </p>
+          ) : loadWarning ? (
+            <p className="text-neutral-500">
+              The <code className="font-mono text-neutral-300">{option.event}</code> table is already
+              built in this tab, so the cold start is behind you.
             </p>
           ) : (
             <p className="text-neutral-500">

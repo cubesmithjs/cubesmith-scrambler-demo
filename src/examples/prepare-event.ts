@@ -53,16 +53,19 @@ export async function serverBoot() {
   }
 }
 
-// One honest caveat the package documents rather than glosses: 4x4x4 is the
-// event where preparing does NOT make the first scramble as fast as the tenth.
-// Two things stay lazy on purpose — the per-group wing-pair tables, which cost
-// about 8.5 s that a single scramble does not need and measurably make the
-// TOTAL worse, and the centre-generator library, which is a search rather than
-// a table and costs more to pre-build than a first scramble does. Square-1
-// leaves about 1.5 s for the same reason. Prepare it anyway; just do not budget
-// as though the first 4x4x4 will be free.
-export async function theFourByFourCaveat() {
-  await prepareEvent('444');
-  const results = await generateScrambles('444', 3);
-  console.log(results.length);
+// One honest caveat: Square-1 is the event where preparing does NOT make the
+// first scramble as fast as the tenth. Measured in fresh processes on 0.14.1,
+// prepareEvent('sq1') takes ~3.2 s of a ~3.8 s cold start, and the first
+// scramble after it still costs ~1.5 s against a warm median near 100 ms.
+// Prepare it anyway; just do not budget as though the first one will be free.
+//
+// 4x4x4 used to be the other one — on 0.13.0 its first scramble after preparing
+// still cost 4.5 s — until 0.14.0 moved the compiled pairing library into
+// prepareEvent. It is fully covered now: 504 ms after a 14.4 s prepare.
+export async function theSquareOneCaveat() {
+  await prepareEvent('sq1');
+
+  console.time('first sq1 after prepare');
+  await generateScrambles('sq1', 1);
+  console.timeEnd('first sq1 after prepare'); // ~1.5 s, not ~100 ms
 }

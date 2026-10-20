@@ -8,6 +8,12 @@ interface EventPickerProps {
   readonly value: WcaEventId;
   readonly onChange: (event: WcaEventId) => void;
   readonly disabled: boolean;
+  /**
+   * Which events to offer, when a page has its own source of truth — the draw
+   * page passes `drawableEvents()`. Always laid out in WCA order whatever order
+   * the list arrives in, so the tiles sit in the same place on every page.
+   */
+  readonly events?: readonly WcaEventId[];
 }
 
 /**
@@ -17,10 +23,12 @@ interface EventPickerProps {
  * rather than from a list maintained here, so when a future release registers
  * `333mbf` this picker starts offering it with no code change.
  */
-export function EventPicker({ value, onChange, disabled }: EventPickerProps) {
+export function EventPicker({ value, onChange, disabled, events }: EventPickerProps) {
+  const offered = events ? WCA_EVENTS.filter((event) => events.includes(event.id)) : WCA_EVENTS;
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-      {WCA_EVENTS.map((event) => {
+      {offered.map((event) => {
         const implemented = isImplementedEvent(event.id);
         const selected = event.id === value;
 

@@ -1,7 +1,9 @@
 import {
   AlgorithmSyntaxError,
+  notationForEvent,
   ScrambleSyntaxError,
   validateScramble,
+  type Notation,
   type WcaEventId,
 } from '@cubesmith/scrambler';
 
@@ -19,6 +21,23 @@ import { describeSyntaxError, underlineSpan } from './syntax-messages';
 
 export function isValidFor(event: WcaEventId, text: string): boolean {
   return validateScramble(event, text).valid;
+}
+
+// Which grammar an event is written in, before there is any text to check.
+// `notationForEvent` validates nothing — it answers the question you have while
+// building the form: which help text, input hint or example list to show. It
+// agrees with the `notation` on every `validateScramble` result, so a form that
+// branches on it up front and a handler that branches on the result afterwards
+// can never disagree.
+export function grammarFor(event: WcaEventId): Notation {
+  return notationForEvent(event);
+}
+
+// Twelve of the seventeen events answer 'cube' — the blindfolded and one-handed
+// variants included — which is why a page about notations needs six options,
+// not seventeen.
+export function blindfoldedSharesTheCubeGrammar(): boolean {
+  return notationForEvent('444bf') === 'cube' && notationForEvent('sq1') === 'square1';
 }
 
 // Empty input is valid for every event, exactly as it is for

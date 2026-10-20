@@ -11,9 +11,11 @@ import { useState } from 'react';
 
 import type { Run, RunError, RunMode, ScrambleResponse } from '@/lib/api';
 import { coldCost, getEvent } from '@/lib/events';
+import { recordGenerated, tableStateOf, useTableState } from '@/lib/table-state';
 
 import { EventPicker } from './event-picker';
 import { ScrambleOutput } from './scramble-output';
+import { WarmUpControl } from './warm-up-control';
 
 /**
  * Resolves once the browser has actually painted a frame.
@@ -77,16 +79,18 @@ export function Playground() {
   const [count, setCount] = useState(String(DEFAULT_COUNT));
   const [run, setRun] = useState<Run | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [preparing, setPreparing] = useState(false);
 
   /**
-   * Pruning tables already built *in this tab*. Server-side warmth is a
+   * Pruning tables already built *in this tab* — shared with every other page
+   * of the demo, as the package's own tables are. Server-side warmth is a
    * separate thing entirely, reported by the route on each response.
    */
-  const [warmTables, setWarmTables] = useState<ReadonlySet<string>>(() => new Set());
+  const tableState = useTableState(event);
 
   const selected = getEvent(event);
-  const busy = pending !== null;
-  const clientColdAhead = mode === 'client' && selected.table !== null && !warmTables.has(selected.table);
+  const busy = pending !== null || preparing;
+  const clientColdAhead = mode === 'client' && tableState.kind === 'cold';
 
   const multi = event === MULTI_SCRAMBLE_EVENT;
   /** `null` while the field is empty or not a whole number — the button stays disabled rather than guessing. */
@@ -100,7 +104,6 @@ export function Playground() {
    */
   async function generate(overrides?: { readonly event: WcaEventId; readonly count: number }) {
     const targetEvent = overrides?.event ?? event;
-    const table = getEvent(targetEvent).table;
     const seedValue = seed.trim() ? seed.trim() : null;
 
     // Only send a count when the event actually takes one. Sending it always
@@ -114,7 +117,7 @@ export function Playground() {
     };
 
     if (mode === 'client') {
-      const cold = table !== null && !warmTables.has(table);
+      const cold = tableStateOf(targetEvent).kind === 'cold';
       setPending({ mode, cold, event: targetEvent });
 
       // Hand the browser a frame to paint the pending state before we give it
@@ -128,7 +131,8 @@ export function Playground() {
       try {
         const result = await generateScramble(targetEvent, options);
         const elapsedMs = performance.now() - startedAt;
-        if (table) setWarmTables((previous) => new Set(previous).add(table));
+        // Only a single scramble is comparable with the event's first-call cost.
+        recordGenerated(targetEvent, countToSend === null || countToSend === 1 ? elapsedMs : null);
         setRun({
           mode,
           event: targetEvent,
@@ -263,6 +267,18 @@ export function Playground() {
       )}
 
       <EventPicker value={event} onChange={setEvent} disabled={busy} />
+
+      {mode === 'client' ? (
+        <WarmUpControl event={event} disabled={busy} onBusyChange={setPreparing} />
+      ) : (
+        <p className="-mt-2 text-sm leading-relaxed text-neutral-500">
+          On the server, <code className="font-mono text-neutral-300">prepareEvent</code> belongs at
+          process start rather than behind a button: called once in a long-lived Node process, it
+          warms every later request. A serverless platform runs many short-lived instances, and each
+          one warms up on its own — so there it moves the cost to an instance&rsquo;s first request
+          rather than removing it.
+        </p>
+      )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">

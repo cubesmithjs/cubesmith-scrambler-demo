@@ -6,16 +6,18 @@ import {
   InvalidScrambleCountError,
   MAX_BATCH_COUNT,
   MAX_SCRAMBLE_COUNT,
-  prepareEvent,
   type ScrambleResult,
   type WcaEventId,
 } from '@cubesmith/scrambler';
 import { useRef, useState } from 'react';
 
 import { coldCost, estimatedBatchMs, getEvent } from '@/lib/events';
+import { recordGenerated, useTableState } from '@/lib/table-state';
 
 import { CopyButton } from './copy-button';
 import { EventPicker } from './event-picker';
+import { PrepareComparison } from './prepare-comparison';
+import { WarmUpControl } from './warm-up-control';
 
 /**
  * Resolves after the browser has actually painted.
@@ -89,8 +91,8 @@ export function BatchWorkbench() {
   const [run, setRun] = useState<BatchRun | null>(null);
   const [loopRun, setLoopRun] = useState<LoopRun | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [prepared, setPrepared] = useState<ReadonlyMap<WcaEventId, number>>(() => new Map());
   const [preparing, setPreparing] = useState(false);
+  const tableState = useTableState(event);
 
   /** Read inside `onProgress`, so it must be a ref: the callback closes over the first render. */
   const cancelRef = useRef(false);
@@ -124,6 +126,8 @@ export function BatchWorkbench() {
         ...(seedValue ? { seed: seedValue } : {}),
         ...(cubesPerAttempt !== null ? { cubesPerAttempt } : {}),
         onProgress: async (done, batchTotal) => {
+          // One finished scramble means the table exists now, cancelled or not.
+          if (done === 1) recordGenerated(event, null);
           if (cancelRef.current) throw new Cancelled();
           setProgress({ done, total: batchTotal, yielding: yieldToPaint });
           // The line that decides whether this bar animates or sits at zero.
@@ -179,7 +183,9 @@ export function BatchWorkbench() {
         // of the old idiom: with no `onProgress` to throw from, cancelling a
         // caller-side loop is the caller's own `if`.
         if (cancelRef.current) break;
+        const startedAt = performance.now();
         const result = await generateScramble(event, seedValue ? { seed: seedValue } : {});
+        if (index === 0) recordGenerated(event, performance.now() - startedAt);
         moves.push(result.moves);
         setProgress({ done: index + 1, total: LOOP_DEMO_COUNT, yielding: true });
         await nextPaint();
@@ -194,21 +200,6 @@ export function BatchWorkbench() {
     }
   }
 
-  async function prepare() {
-    setPreparing(true);
-    setError(null);
-    await nextPaint();
-    const startedAt = performance.now();
-    try {
-      await prepareEvent(event);
-      const elapsed = performance.now() - startedAt;
-      setPrepared((previous) => new Map(previous).set(event, elapsed));
-    } finally {
-      setPreparing(false);
-    }
-  }
-
-  const prepareMs = prepared.get(event);
   const percent = progress && progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
 
   /**
@@ -305,26 +296,9 @@ export function BatchWorkbench() {
           />
           Yield to the browser inside <code className="font-mono text-neutral-300">onProgress</code>
         </label>
-
-        <button
-          type="button"
-          onClick={prepare}
-          disabled={busy || selected.table === null}
-          className="rounded-lg border border-neutral-800 px-4 py-1.5 text-sm transition hover:border-neutral-600 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {preparing
-            ? 'Preparing…'
-            : selected.table === null
-              ? `${selected.name} has nothing to prepare`
-              : `prepareEvent('${event}')`}
-        </button>
-
-        {prepareMs !== undefined ? (
-          <span className="text-sm text-neutral-500">
-            prepared in <span className="text-neutral-300">{formatMs(prepareMs)}</span>
-          </span>
-        ) : null}
       </div>
+
+      <WarmUpControl event={event} disabled={busy} onBusyChange={setPreparing} />
 
       {heavy && !progress ? (
         <p className="-mt-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-relaxed text-amber-200/90">
@@ -332,7 +306,10 @@ export function BatchWorkbench() {
           {multi ? `attempts of ${cubesValue} cubes each ` : 'scrambles '}
           is on the order of <strong>{Math.round(estimatedMs / 1000)} seconds</strong> of
           computation on this machine, and every one of those seconds is a blocked main thread —
-          plus {coldCost(selected) ?? 'no'} cold start if the table is not warm yet. It will
+          {tableState.kind === 'cold'
+            ? `plus a ${coldCost(selected)} cold start, since this tab has not built the table yet.`
+            : 'the table, at least, is already built.'}{' '}
+          It will
           finish, and with the yield on the bar will move throughout; it is simply a long time to
           watch a browser tab do one thing. This is the arithmetic that makes a real scramble set a
           server job.
@@ -418,6 +395,8 @@ export function BatchWorkbench() {
           </span>
         </div>
       </section>
+
+      <PrepareComparison event={event} seed={seed.trim()} disabled={busy} />
     </div>
   );
 }
