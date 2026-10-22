@@ -17,7 +17,7 @@ interface EventPickerProps {
 }
 
 /**
- * All seventeen WCA events, including the one that does not work.
+ * All eighteen WCA events.
  *
  * The "no scrambler" mark comes from the package's own `isImplementedEvent`
  * rather than from a list maintained here, so when a future release registers

@@ -19,7 +19,9 @@ export function ScrambleDrawing({
   className,
   title,
 }: {
-  readonly image: ScrambleImage;
+  // Only the fields a picture needs, so the unofficial entry's images draw here
+  // too: they are the same data with an unofficial event id.
+  readonly image: Pick<ScrambleImage, 'width' | 'height' | 'strokeWidth' | 'shapes'>;
   readonly className?: string;
   /** Accessible name. There is no sensible generic default, so callers pass one. */
   readonly title: string;

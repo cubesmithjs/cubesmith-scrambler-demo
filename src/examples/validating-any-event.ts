@@ -11,9 +11,9 @@ import { describeScrambleError } from './scramble-messages';
 import { describeSyntaxError, underlineSpan } from './syntax-messages';
 
 // New in 0.12.0. `validateAlgorithm` reads cube notation, which is twelve of
-// the seventeen events; the other five — Megaminx, Clock, Pyraminx, Skewb and
-// Square-1 — are written in grammars of their own. `validateScramble` is one
-// door onto all six, and you pick with the thing you already have: the event.
+// the eighteen events; the other six — Megaminx, Clock, Pyraminx, Skewb,
+// Square-1 and, since 0.15.0, FTO — are written in grammars of their own.
+// `validateScramble` is one door onto all seven, and you pick with the thing you already have: the event.
 //
 // The event matters because a scramble string does not carry it. `R++ D-- U` is
 // a valid Megaminx scramble and an invalid cube one, and no amount of looking at
@@ -33,9 +33,9 @@ export function grammarFor(event: WcaEventId): Notation {
   return notationForEvent(event);
 }
 
-// Twelve of the seventeen events answer 'cube' — the blindfolded and one-handed
-// variants included — which is why a page about notations needs six options,
-// not seventeen.
+// Twelve of the eighteen events answer 'cube' — the blindfolded and one-handed
+// variants included — which is why a page about notations needs seven options,
+// not eighteen.
 export function blindfoldedSharesTheCubeGrammar(): boolean {
   return notationForEvent('444bf') === 'cube' && notationForEvent('sq1') === 'square1';
 }

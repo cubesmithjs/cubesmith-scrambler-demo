@@ -25,7 +25,7 @@ export function handleEveryFailure(event: '333' | 'sq1', scramble: string) {
       // No PICTURE for this event. Deliberately not UnimplementedEventError,
       // which means no SCRAMBLER — two different absences, and conflating them
       // would send a caller looking for the wrong missing thing. Unreachable as
-      // of 0.13.0, since all seventeen events draw; catch it anyway, because
+      // of 0.13.0, since all eighteen events draw; catch it anyway, because
       // WcaEventId is a type union and the registry is a runtime fact.
       console.warn(`no drawing for ${error.message}`);
     } else if (error instanceof InvalidColorError) {

@@ -5,7 +5,7 @@ import type { ScrambleErrorReason, ScrambleSyntaxError } from '@cubesmith/scramb
  * friction of it being a second file is the point, not an accident.
  *
  * 0.12.0 added `ScrambleErrorReason`, thirteen codes covering the five bespoke
- * notations, as a **separate** union from `SyntaxErrorReason` rather than as new
+ * notations (0.15.0 added two more, for the Face Turning Octahedron), as a **separate** union from `SyntaxErrorReason` rather than as new
  * members of it. That decision is why this file exists instead of eleven more
  * rows in the existing table, and the trade is worth stating from the consumer
  * side, since this repo is the consumer:
@@ -17,9 +17,9 @@ import type { ScrambleErrorReason, ScrambleSyntaxError } from '@cubesmith/scramb
  * **What it bought:** upgrading from 0.11.0 to 0.12.0 did not break
  * `syntax-messages.ts`. That table is an exhaustive `Record<SyntaxErrorReason,
  * Template>` — deliberately, so a new cube code is a compile error rather than a
- * vague message in production — and if the thirteen codes below had been added
+ * vague message in production — and if the codes below had been added
  * to `SyntaxErrorReason`, it would have stopped compiling on upgrade even though
- * nothing about cube notation changed. Thirteen sentences it does not need would
+ * nothing about cube notation changed. Sentences it does not need would
  * have been the price of a release it does not use.
  *
  * That is the honest shape of the thing: they are two grammars. A `clock-*` code
@@ -34,7 +34,8 @@ import type { ScrambleErrorReason, ScrambleSyntaxError } from '@cubesmith/scramb
 type Template = (error: ScrambleSyntaxError) => string;
 
 /**
- * All thirteen codes.
+ * All fifteen codes. The two `fto-*` rows are the ones 0.15.0 added, and this
+ * file stopped compiling until they were written, which is the table doing its job.
  *
  * One language, for the reason `syntax-messages.ts` gives: a second is another
  * table keyed identically, and the codes being stable is what makes that
@@ -73,8 +74,12 @@ const MESSAGES: Record<ScrambleErrorReason, Template> = {
     `"${error.char}" does not belong here. A Square-1 scramble is (top, bottom) pairs and / slices, as in (1, 0) / (0, -2) /.`,
   'square1-zero-turn': (error) =>
     `${error.token} turns nothing, so it is a spelling rather than a move — and it would still cost a move.`,
+  'fto-not-a-face': (error) =>
+    `"${error.token}" is not an FTO face. The eight are U F R L B D BR BL, and BR and BL are single faces.`,
+  'fto-bad-amount': (error) =>
+    `"${error.token}" has no valid amount. An FTO turn has order 3, so there is no 2 — counterclockwise is written '.`,
   // The residual, spelled exactly as the cube union spells it, and with the
-  // same meaning. Nothing any of the five parsers currently produces reaches
+  // same meaning. Nothing any of the six parsers currently produces reaches
   // it; it is what an error built without a detail reports.
   'unexpected-token': () => 'This is not valid notation for this event.',
 };

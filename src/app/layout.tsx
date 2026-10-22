@@ -49,6 +49,9 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
               <Link href="/notation" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Notation
               </Link>
+              <Link href="/unofficial" prefetch={PREFETCH} className="hover:text-neutral-100">
+                Unofficial
+              </Link>
               <Link href="/code" prefetch={PREFETCH} className="hover:text-neutral-100">
                 Code
               </Link>
@@ -62,7 +65,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
                 prefetch={PREFETCH}
                 className="rounded-full border border-emerald-500/40 px-2.5 py-0.5 text-emerald-400 transition hover:border-emerald-500/70 hover:text-emerald-300"
               >
-                New in 0.14
+                New in 0.15
               </Link>
               {/*
                 The two links that leave the demo open in a new tab, so a reader

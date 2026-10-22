@@ -7,7 +7,7 @@ const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
 export const metadata = {
   title: 'Notation — @cubesmith/scrambler demo',
   description:
-    'Read, invert and validate WCA scramble notation with @cubesmith/scrambler — all six grammars and all seventeen events, with the stable error codes added in 0.11.0 and 0.12.0.',
+    'Read, invert and validate WCA scramble notation with @cubesmith/scrambler — all seven grammars and all eighteen events, with the stable error codes added in 0.11.0 and 0.12.0.',
 };
 
 export default function NotationPage() {
@@ -29,7 +29,7 @@ export default function NotationPage() {
           runs on each keystroke.
         </p>
         <p className="mt-3 leading-relaxed text-neutral-400">
-          Those four are the <em>cube</em> grammar, which is twelve of the seventeen events. Since
+          Those four are the <em>cube</em> grammar, which is twelve of the eighteen events. Since
           0.12.0 the other five — Megaminx, Clock, Pyraminx, Skewb and Square-1 — have a public
           check too, behind{' '}
           <code className="font-mono text-neutral-200">validateScramble(event, text)</code>. Pick a

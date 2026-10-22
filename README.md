@@ -2,9 +2,9 @@
 
 A small Next.js reference app for [`@cubesmith/scrambler`](https://www.npmjs.com/package/@cubesmith/scrambler),
 the dependency-free WCA scramble generator. It exists to show you how to call the
-package — every public export of it, across both entry points, on 0.14.0 — not to
-be a cubing app: no 3D renderer, no timer, no history, no state library. Five
-pages, and you can read all of it in twenty minutes.
+package — every public export of its two WCA entry points, and the two unofficial
+ones, on 0.15.0 — not to be a cubing app: no 3D renderer, no timer, no history, no
+state library. Six pages, and you can read all of it in twenty minutes.
 
 - **Live** — https://cubesmithjs.github.io/cubesmith-scrambler-demo/ — the static
   build, so scramble generation is browser-only there; see [Deploying](#deploying)
@@ -23,8 +23,11 @@ npm run dev
 The package has parts that never touch each other, and the demo is laid out that
 way — one page per part, so you can skip the ones you will not call.
 
-**`/whats-new` — everything that changed between 0.12.0 and 0.14.0,** which is
-the page to start on if you are upgrading. 0.13.0 added two public surfaces (a
+**`/whats-new` — everything that changed between 0.12.0 and 0.15.0,** which is
+the page to start on if you are upgrading. 0.15.0 added the Face Turning
+Octahedron, sixteen unofficial events and a fix to the 3x3x3 phase seam, which the
+page checks live: one button generates forty `333` scrambles in your tab and looks
+for a repeated turn. 0.13.0 added two public surfaces (a
 batch draw and 2D drawing) plus `prepareEvent`; 0.14.0 added no API at all and
 instead changed what two events emit. The compatibility claims on it are
 **checked in your browser as the page renders** rather than asserted: the old
@@ -38,14 +41,23 @@ pinning those by seed needs re-recording. The other thirteen events emit exactly
 what they did, and nothing that *parsed* before stops parsing — the rule across
 all three changes is **emit narrow, accept wide**.
 
-**`/` — generating scrambles.** Any of the seventeen WCA events, either in a Route
+Upgrading to 0.15.0 changes less: a seeded `333`-family scramble changes only if
+its seed produced the phase-seam repeat 0.15.0 removed (28 of 300 in the package's
+sample), and an exhaustive `switch` or `Record` over `WcaEventId`, `Notation` or
+`ScrambleErrorReason` needs an `'fto'` arm. This demo had two, and the compiler
+named both. Before 1.0, a `^0.14` range does not include 0.15.0.
+
+**`/` — generating scrambles.** Any of the eighteen WCA events, either in a Route
 Handler or in a Client Component, timed whichever one you pick. There is a seed
 field (same seed plus same event always gives the same moves), a badge showing
 whether the scramble is `random-state` or `random-moves`, and — for `333mbf`, the
 one multi-scramble event — a cube count and a numbered list of the scrambles that
 attempt covers.
 
-Every one of the seventeen generates since 0.10.0, which registered `333mbf` last.
+Every one of the eighteen generates: `333mbf` was the last of the original
+seventeen (0.10.0), and `fto` joined in 0.15.0, ahead of its first competitions on
+2027-01-02. Its notation and minimum solve distance are provisional until the WCA
+publishes the FTO regulations.
 Nothing in the picker can produce an `UnimplementedEventError` any more, so the
 demonstration of a typed failure moved to one you *can* still hit: passing `count`
 to an event that does not take one, which raises `InvalidScrambleCountError`
@@ -80,7 +92,7 @@ Worker — a Worker loads its own copy of the package, which is the only way to
 start cold twice in a tab that may already have built the table.
 
 **`/draw` — the picture (0.13.0).** The flat sticker net that appears beside
-every scramble on an official WCA sheet, for all **seventeen** events, from the
+every scramble on an official WCA sheet, for all **eighteen** events, from the
 separate `@cubesmith/scrambler/draw` entry point. Type or paste a scramble and it
 redraws as you type, because `drawScramble` takes the scramble as **text** — so a
 stored scramble draws exactly as a generated one does, and the page needs no
@@ -166,17 +178,29 @@ since the main entry re-exports nothing from there, a snippet that reached for t
 short path would fail the build rather than teach the wrong import.
 
 That separation is what you pay for in bytes. Measured off the published
-`0.14.1` tarball:
+`0.15.0` tarball:
 
 | Entry point | Raw | gzip | brotli |
 | --- | --- | --- | --- |
-| `@cubesmith/scrambler` (`dist/index.js`) | 228.6 KiB | 49.9 KiB | 41.4 KiB |
-| `@cubesmith/scrambler/draw` (`dist/draw/index.js`) | 94.9 KiB | 23.0 KiB | 20.0 KiB |
+| `@cubesmith/scrambler` (`dist/index.js`) | 268.9 KiB | 59.5 KiB | 48.9 KiB |
+| `@cubesmith/scrambler/draw` (`dist/draw/index.js`) | 101.9 KiB | 24.7 KiB | 21.4 KiB |
+| `@cubesmith/scrambler/unofficial` | 111.1 KiB | 24.9 KiB | 20.6 KiB |
+| `@cubesmith/scrambler/unofficial/draw` | 78.9 KiB | 20.3 KiB | 17.5 KiB |
 
 The drawing entry imports nothing from the main one, so a page that only draws
 does not carry the scrambler, and a page that only scrambles does not carry the
 drawing code. In this demo's static build `/` and `/notation` load no drawing
 code at all; `/draw` and `/whats-new` are the two pages that do.
+
+**`/unofficial` — puzzles the WCA does not hold (0.15.0).** Big cubes up to
+12x12x12, blindfolded variants and six shape mods of the 3x3x3, from
+`@cubesmith/scrambler/unofficial` and `/unofficial/draw`. Pick one, generate it
+(with a seed if you like), and the page shows its `quality` (including
+`random-state-mechanism`, which says what it means in one line), validates it, and
+draws it in every view the event offers: the Mirror Cube's isometric views and its
+flat height map side by side. Axis, Windmill and Ghost generate but do not draw yet,
+and the page shows that honestly rather than a guessed picture. Nothing on the other
+pages changes: `isImplementedEvent('888')` is still `false`.
 
 ## Server or browser?
 
@@ -202,6 +226,7 @@ page shows you the real numbers for your own machine:
 | `222` | ~4 s | under 1 ms |
 | `444` | ~15 s | 110 ms – 1.3 s |
 | `sq1` | ~4 s | 1 ms – 9 s (median ~100 ms) |
+| `fto` | ~7.5 s | 150–450 ms (median ~290 ms) |
 | `pyram`, `skewb` | 0.2–0.6 s | under 1 ms |
 | `333mbf` | shares `333` | 40 ms – 1 s **per cube** |
 | `clock`, `555`, `666`, `777`, `minx` | no table | under 1 ms |
@@ -235,7 +260,8 @@ and the first scramble after it still costs about 1.5 s against a warm median
 near 100 ms. `444` used to be the other exception — on 0.13.0 its first scramble
 after preparing still cost 4.5 s — until 0.14.0 moved the compiled pairing
 library into `prepareEvent`; it now measures 504 ms after a 14.4 s prepare.
-(Fresh-process readings on 0.14.1, Node 22.)
+(Fresh-process readings on 0.14.1, Node 22.) `fto` is fully covered too: on 0.15.0
+a ~7.2 s prepare left a first scramble of 290–405 ms, inside its warm range.
 
 Neither of the two pages added in 0.13.0 changes the table above. Drawing needs no
 table at all, and a batch pays each cold start exactly once and then multiplies

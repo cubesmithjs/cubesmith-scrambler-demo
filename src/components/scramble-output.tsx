@@ -27,7 +27,7 @@ function formatMs(ms: number): string {
 /**
  * How many whitespace-separated tokens the scramble is.
  *
- * "Tokens" rather than "moves" because for five of the seventeen events they
+ * "Tokens" rather than "moves" because for five of the eighteen events they
  * are not the same thing: a Clock token is a dial turn, a Square-1 token is a
  * pair of layer twists. Counting them is still the useful number — it is how
  * much a delegate has to physically apply — which is why this appears at all,

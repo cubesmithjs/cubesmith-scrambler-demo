@@ -9,7 +9,7 @@ import type { WcaEventId } from '@cubesmith/scrambler';
  * generated one 3x3x3 scramble, the blindfolded, one-handed and fewest-moves
  * variants are already warm and cost milliseconds.
  */
-export type TableGroup = '222' | '333' | '444' | 'pyram' | 'skewb' | 'sq1' | null;
+export type TableGroup = '222' | '333' | '444' | 'pyram' | 'skewb' | 'sq1' | 'fto' | null;
 
 export interface WcaEvent {
   readonly id: WcaEventId;
@@ -53,10 +53,12 @@ const TABLE_COLD_COST: Record<NonNullable<TableGroup>, string> = {
   pyram: '~200 ms',
   skewb: '~600 ms',
   sq1: '~4 s',
+  // 0.15.0, Node 22.14.0, three fresh processes: 7.6, 7.5 and 7.6 s.
+  fto: '~7.5 s',
 };
 
 /**
- * All seventeen WCA events, in official WCA order.
+ * All eighteen WCA events, in official WCA order, with the newest last.
  *
  * Note there is no `implemented` flag here on purpose. `isImplementedEvent()`
  * from the package is the runtime source of truth, and hardcoding a second
@@ -96,6 +98,18 @@ export const WCA_EVENTS: readonly WcaEvent[] = [
     firstCall: 'shares 3x3x3',
     afterwards: '40 ms - 1 s per cube',
   },
+  // New in 0.15.0, official from 2027-01-02. Its notation and minimum solve
+  // distance are provisional until the WCA publishes the FTO regulations.
+  // 60 warm draws in one process on 0.15.0, 2026-10-22: min 144 ms, p50 287 ms,
+  // p90 387 ms, max 453 ms. It solves every state in 24 frames to keep the
+  // scrambles short, which is where the time goes.
+  {
+    id: 'fto',
+    name: 'Face Turning Octahedron',
+    table: 'fto',
+    firstCall: '~7.5 s',
+    afterwards: '150-450 ms',
+  },
 ];
 
 const BY_ID = new Map(WCA_EVENTS.map((event) => [event.id, event]));
@@ -123,6 +137,7 @@ const TABLE_STEADY_MS: Record<NonNullable<TableGroup> | 'none', number> = {
   pyram: 1,
   skewb: 1,
   sq1: 2000,
+  fto: 450,
   none: 1,
 };
 
@@ -176,6 +191,10 @@ export type Preparation =
  * preparing still cost 4.5 s — until 0.14.0 moved the compiled pairing library
  * into `prepareEvent`; it now measures 504 ms after a 14.4 s prepare, the same as
  * a warm draw.
+ *
+ * FTO (0.15.0, 2026-10-22) is fully covered: three fresh processes prepared in
+ * 7.1-7.2 s, after which the first scramble took 290-405 ms, inside its warm
+ * range.
  */
 const TABLE_LEFTOVER: Partial<Record<NonNullable<TableGroup>, string>> = {
   sq1: '~1.5 s',

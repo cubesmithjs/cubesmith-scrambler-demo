@@ -2,9 +2,9 @@ import { generateScramble, isImplementedEvent, type WcaEventId } from '@cubesmit
 
 // `WcaEventId` is the full WCA event union. It describes the events the
 // package aims to cover, not the ones it can generate today — the two have
-// coincided since 0.10.0, which registered '333mbf' and took coverage to all
-// seventeen, but they are still separate things and a future WCA event would
-// separate them again.
+// coincided since 0.10.0, which registered '333mbf', and 0.15.0 kept them
+// together by adding 'fto' to both at once. They are still separate things,
+// and a future WCA event could separate them again.
 //
 // `isImplementedEvent` is the runtime source of truth. Check it before you
 // offer an event in a picker, and you never have to maintain your own copy of

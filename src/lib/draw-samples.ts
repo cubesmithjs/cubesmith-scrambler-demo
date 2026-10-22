@@ -53,6 +53,8 @@ export const DRAW_SAMPLES: Readonly<Record<WcaEventId, string>> = {
     "R++ D++ R++ D-- R-- D++ R++ D++ R++ D-- U' R++ D++ R-- D-- R++ D++ R-- D++ R++ D++ U R++ D-- R++ D-- R++ D-- R-- D++ R++ D-- U R-- D++ R++ D++ R-- D-- R++ D-- R-- D-- U' R-- D-- R-- D-- R-- D-- R++ D++ R-- D-- U R++ D++ R-- D++ R++ D++ R-- D-- R-- D-- U R-- D-- R-- D-- R-- D-- R-- D-- R++ D++ U'",
   pyram: "L U' R U' L' R B U R B R u' l b'",
   skewb: "U' L B L' U' R L' U' R' B R'",
+  // `generateScramble('fto', { seed: 'draw-sample' })` on 0.15.0.
+  fto: "BR' R BR' R' BR' R BR' R' BR' R BR R BR' R D BR' F BR D R' BR' F' R' D' BR D L' D' BL' B F' BR' BL' D'",
   sq1: '(6,2) / (3,-3) / (-3,6) / (-2,-5) / (-1,-4) / (0,-3) / (-2,1) / (-3,-1) / (-3,0) / (-3,-2) / (-2,-1) / (0,-2) / (-2,-3) / (0,1)',
 };
 

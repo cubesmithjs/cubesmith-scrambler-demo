@@ -126,9 +126,9 @@ export function foreignNotationFor(input: string): NotationSample | null {
  * package as the page renders. A hand-maintained second copy of the package's
  * classification is precisely what this demo exists to argue against.
  *
- * Twelve of the thirteen codes are reachable and have a row. The thirteenth,
+ * Fourteen of the fifteen codes are reachable and have a row. The fifteenth,
  * `unexpected-token`, is the package's documented residual — nothing any of the
- * five parsers produces reaches it — so there is no input to write for it, and
+ * six parsers produces reaches it — so there is no input to write for it, and
  * there isn't one.
  */
 export interface NotationCatalogue {
@@ -210,6 +210,20 @@ export const SQUARE1_SAMPLES: NotationCatalogue = {
   ],
 };
 
+export const FTO_SAMPLES: NotationCatalogue = {
+  valid: [
+    { input: 'U F R L B D', note: 'The six faces a cube would also have.' },
+    { input: "BR BL' D", note: 'BR and BL are single faces — the two a cube does not have.' },
+    { input: "U' BR' F L' BL D", note: 'Primes are the counterclockwise turns.' },
+  ],
+  invalid: [
+    { input: 'U BX F', note: 'BX names no face. B, BR and BL do; BX is reported whole.' },
+    { input: 'U Q', note: 'A letter that names no face at all.' },
+    { input: 'U R2 F', note: 'Order 3, so there is no half turn to spell. Counterclockwise is R-prime.' },
+    { input: "U R'' F", note: 'One prime per move.' },
+  ],
+};
+
 /** The catalogue for a notation, or `null` for the cube grammar, which has its own lists above. */
 export function catalogueFor(notation: string): NotationCatalogue | null {
   switch (notation) {
@@ -223,6 +237,8 @@ export function catalogueFor(notation: string): NotationCatalogue | null {
       return SKEWB_SAMPLES;
     case 'square1':
       return SQUARE1_SAMPLES;
+    case 'fto':
+      return FTO_SAMPLES;
     default:
       return null;
   }

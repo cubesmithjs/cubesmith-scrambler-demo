@@ -3,10 +3,10 @@ import type { Notation, WcaEventId } from '@cubesmith/scrambler';
 import { coldCost, getEvent } from './events';
 
 /**
- * The six grammars, as the page offers them.
+ * The seven grammars, as the page offers them.
  *
- * 🔴 **Six options, not seventeen.** `validateScramble` takes a `WcaEventId`,
- * and a seventeen-item picker would be the wrong shape for this page: twelve of
+ * 🔴 **Seven options, not eighteen.** `validateScramble` takes a `WcaEventId`,
+ * and an eighteen-item picker would be the wrong shape for this page: twelve of
  * those events share one grammar, so eleven of the rows would answer
  * identically. The page is about *notations*. Each row below names the event it
  * validates as, which is the parameter the package actually wants.
@@ -36,7 +36,7 @@ export const NOTATION_OPTIONS: readonly NotationOption[] = [
     // random-moves, so it builds no pruning table and cannot freeze this tab —
     // and its `3Rw'` output is notation `parseMove` cannot read.
     event: '555',
-    covers: 'twelve of the seventeen events',
+    covers: 'twelve of the eighteen events',
     blurb:
       'The grammar parseAlgorithm reads: faces, wide moves, slices, rotations, groups, commutators, conjugates, pauses and comments.',
   },
@@ -82,6 +82,16 @@ export const NOTATION_OPTIONS: readonly NotationOption[] = [
     // The one tab on the site that is about acceptance, so this is where the
     // difference between the two sets belongs. /whats-new runs the spellings.
     note: 'What it emits and what it accepts are different on purpose. Since 0.13.0 a generated scramble is printed (-3,-4), with no space after the comma — TNoodle’s spelling. The parser still takes (-3, -4) and every other spacing, because a scramble already stored in somebody’s database was written the old way and must stay valid.',
+  },
+  {
+    notation: 'fto',
+    label: 'FTO',
+    event: 'fto',
+    covers: 'fto',
+    blurb:
+      'Eight faces, U F R L B D BR BL, where BR and BL are single faces. Order-3 turns, so there is no 2: counterclockwise is written prime.',
+    // The grammar is the one place on this page that is not settled yet.
+    note: 'New in 0.15.0, and provisional: the WCA has not yet published the FTO regulations, so this notation follows current practice and may change in a patch.',
   },
 ];
 

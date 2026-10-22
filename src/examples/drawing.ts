@@ -83,7 +83,7 @@ export function serializeForPrint() {
   return svg;
 }
 
-// All seventeen events draw. `isDrawableEvent` is the non-throwing way to ask,
+// All eighteen events draw. `isDrawableEvent` is the non-throwing way to ask,
 // and it is worth using rather than assuming: WcaEventId is a TYPE union and
 // the drawer registry is a RUNTIME fact, so the two can disagree in a release
 // that adds an event before its picture. `drawableEvents()` enumerates them.

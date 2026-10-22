@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { CompatibilityChecks } from '@/components/compatibility-checks';
+import { SeamCheck } from '@/components/seam-check';
 
 const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
 const PREFETCH = STATIC_EXPORT ? false : undefined;
@@ -10,7 +11,7 @@ const CHANGELOG_URL = 'https://github.com/cubesmithjs/cubesmith-scrambler/blob/m
 export const metadata = {
   title: "What's new — @cubesmith/scrambler demo",
   description:
-    'Everything that changed between 0.12.0 and 0.14.0: batch generation, prepareEvent, a second entry point for 2D drawing, and two events that emit a different string than they used to.',
+    'Everything that changed between 0.12.0 and 0.15.0: the Face Turning Octahedron, sixteen unofficial events, batch generation, prepareEvent, 2D drawing, and the scrambles that emit a different string than they used to.',
 };
 
 export default function WhatsNewPage() {
@@ -18,10 +19,13 @@ export default function WhatsNewPage() {
     <div className="flex flex-col gap-12">
       <section>
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-50">
-          0.12.0 &rarr; 0.14.0
+          0.12.0 &rarr; 0.15.0
         </h1>
         <p className="mt-3 leading-relaxed text-neutral-400">
-          Two releases. <strong className="text-neutral-200">0.13.0</strong> added two public
+          Three releases. <strong className="text-neutral-200">0.15.0</strong> added the Face
+          Turning Octahedron, sixteen unofficial events behind entry points of their own, and a fix
+          that stops a 3x3x3 scramble printing a turn that merges into the one before.{' '}
+          <strong className="text-neutral-200">0.13.0</strong> added two public
           surfaces a competition scramble set needs and 0.12.0 did not have — a batch draw and 2D
           drawing for all seventeen events — plus a warm-up helper.{' '}
           <strong className="text-neutral-200">0.14.0</strong> added no API at all and instead
@@ -42,6 +46,61 @@ export default function WhatsNewPage() {
             <span className="sr-only"> (opens in a new tab)</span>
           </a>{' '}
           is the authority on any of it.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-baseline gap-3 border-b border-neutral-900 pb-3">
+          <h2 className="text-xl font-semibold tracking-tight text-neutral-100">
+            0.15.0 — an eighteenth event, sixteen unofficial ones, and a fix
+          </h2>
+          <span className="text-sm text-neutral-500">two unions grew; some seeded 3x3x3 output changes</span>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card
+            href="/notation"
+            title="fto"
+            body="The Face Turning Octahedron, official from 2027-01-02: random-state scrambles, a seventh grammar with two reason codes, and a drawing. Its notation and minimum solve distance are provisional until the WCA publishes the FTO regulations. It is on every page that lists events."
+            cta="Its grammar on /notation"
+          />
+          <Card
+            href="/unofficial"
+            title="@cubesmith/scrambler/unofficial"
+            body="Big cubes to 12x12x12, blindfolded variants and six 3x3x3 shape mods, behind two entry points of their own, so a WCA-only app bundles none of it and isImplementedEvent still answers no for them."
+            cta="Generate and draw them"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="font-mono text-sm font-semibold text-emerald-300">No repeated turn at the 3x3x3 seam</h3>
+          <p className="text-sm leading-relaxed text-neutral-400">
+            The 3x3x3 solver works in two phases, and where they met it could print{' '}
+            <code className="font-mono text-neutral-200">R2 R&apos;</code>, or{' '}
+            <code className="font-mono text-neutral-200">R2 L2 R&apos;</code> through the opposite face:
+            one turn longer than what it performs. 0.15.0 makes the second phase read the first
+            one&apos;s moves. It reaches every 3x3x3-family event:{' '}
+            <code className="font-mono text-neutral-200">333</code>,{' '}
+            <code className="font-mono text-neutral-200">333oh</code>,{' '}
+            <code className="font-mono text-neutral-200">333bf</code>,{' '}
+            <code className="font-mono text-neutral-200">333fm</code> and{' '}
+            <code className="font-mono text-neutral-200">333mbf</code>.
+          </p>
+          <SeamCheck />
+        </div>
+
+        <p className="text-sm leading-relaxed text-neutral-400">
+          <strong className="text-neutral-200">Upgrading:</strong> a seeded 3x3x3-family scramble
+          changes only if its seed produced one of those repeats (28 of 300 in the package&apos;s
+          sample); every other seed gives the same string. An exhaustive{' '}
+          <code className="font-mono text-neutral-200">switch</code> or{' '}
+          <code className="font-mono text-neutral-200">Record</code> over{' '}
+          <code className="font-mono text-neutral-200">WcaEventId</code>,{' '}
+          <code className="font-mono text-neutral-200">Notation</code> or{' '}
+          <code className="font-mono text-neutral-200">ScrambleErrorReason</code> needs an{' '}
+          <code className="font-mono text-neutral-200">&apos;fto&apos;</code> arm — this demo had two.
+          And before 1.0, a <code className="font-mono text-neutral-200">^0.14</code> range does not
+          include 0.15.0.
         </p>
       </section>
 

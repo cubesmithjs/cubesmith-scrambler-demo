@@ -86,7 +86,7 @@ export function NotationWorkbench() {
    *
    * `validateScramble` takes the **event**, not a notation, because the event
    * is what a caller actually has — a row in a database, a picker value, a
-   * `result.event` from `generateScramble`. Six buttons rather than seventeen
+   * `result.event` from `generateScramble`. Seven buttons rather than eighteen
    * is this page's editorial choice; the package's parameter is the event.
    *
    * Deliberately not wrapped in a `try`. It re-throws anything that is not a

@@ -54,7 +54,7 @@ function classify(error: unknown): DrawFailure {
     return {
       className: 'UnimplementedDrawingError',
       message: error.message,
-      note: 'No drawer for this event. Deliberately not UnimplementedEventError, which means no *scrambler* — two different absences, and as of 0.13.0 neither one is reachable from this page, since all seventeen events both generate and draw.',
+      note: 'No drawer for this event. Deliberately not UnimplementedEventError, which means no *scrambler* — two different absences, and neither one is reachable from this page, since all eighteen events both generate and draw.',
     };
   }
   if (error instanceof InvalidColorError) {
@@ -96,7 +96,7 @@ type DrawState =
 
 /**
  * The events this page offers: the drawing entry's own list, not a second copy
- * of it. All seventeen are drawable as of 0.13.0, which is worth one sentence on
+ * of it. All eighteen are drawable (seventeen since 0.13.0, FTO since 0.15.0), which is worth one sentence on
  * the page rather than a hidden branch — and if a future event arrives with a
  * scrambler and no drawer yet, this picker leaves it out with no code change.
  */

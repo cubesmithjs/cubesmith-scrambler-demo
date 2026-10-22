@@ -7,7 +7,7 @@ const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
 export const metadata = {
   title: 'Drawing — @cubesmith/scrambler demo',
   description:
-    'The 2D scramble picture added in 0.13.0: drawScramble for all seventeen events, returned as data rather than markup, from the separate @cubesmith/scrambler/draw entry point.',
+    'The 2D scramble picture added in 0.13.0: drawScramble for all eighteen events, returned as data rather than markup, from the separate @cubesmith/scrambler/draw entry point.',
 };
 
 export default function DrawPage() {
@@ -26,7 +26,7 @@ export default function DrawPage() {
           Every official WCA scramble sheet prints a flat sticker net next to each scramble, so a
           delegate can check at a glance that the cube in front of them matches the paper.{' '}
           <code className="font-mono text-neutral-200">drawScramble</code> produces that net, for
-          all <strong className="text-neutral-200">seventeen</strong> events. Geometry, layout
+          all <strong className="text-neutral-200">eighteen</strong> events. Geometry, layout
           constants and colour values are read from{' '}
           <code className="font-mono text-neutral-200">thewca/tnoodle-lib</code> source, so this is
           a transcription rather than an impression of one.

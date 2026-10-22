@@ -142,7 +142,7 @@ const GROUPS: readonly GroupSpec[] = [
   {
     title: 'Validating what somebody typed',
     blurb:
-      'A non-throwing check (0.11.0), errors you can classify and translate without string-matching an English sentence, and since 0.12.0 the same for all seventeen events rather than the twelve written in cube notation.',
+      'A non-throwing check (0.11.0), errors you can classify and translate without string-matching an English sentence, and since 0.12.0 the same for all eighteen events rather than the twelve written in cube notation.',
     snippets: [
       {
         title: 'Validate a text field',
